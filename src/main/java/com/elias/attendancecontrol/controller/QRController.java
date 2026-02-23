@@ -14,49 +14,22 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class QRController {
     private final TokenService tokenService;
+
     @Value("${app.base-url}")
     private String baseUrl;
     @GetMapping("/generate/{sessionId}")
-    public String generateQR(@PathVariable Long sessionId, Model model, RedirectAttributes redirectAttributes) {
+    public String generateQR(@PathVariable Long sessionId, Model model) {
         log.debug("Generating QR for session: {}", sessionId);
-        try {
-            Map<String, Object> qrData = tokenService.generateQRWithFullData(sessionId, baseUrl);
-            model.addAllAttributes(qrData);
-            return "qr/view";
-        } catch (IllegalArgumentException e) {
-            log.error("Error generating QR: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
-            return "redirect:/sessions";
-        } catch (IllegalStateException e) {
-            log.error("Cannot generate QR: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "No se puede generar QR: " + e.getMessage());
-            return "redirect:/sessions";
-        } catch (Exception e) {
-            log.error("Unexpected error generating QR", e);
-            redirectAttributes.addFlashAttribute("error", "Error inesperado al generar QR");
-            return "redirect:/sessions";
-        }
+        Map<String, Object> qrData = tokenService.generateQRWithFullData(sessionId, baseUrl);
+        model.addAllAttributes(qrData);
+        return "qr/view";
     }
     @PostMapping("/regenerate/{sessionId}")
     public String regenerateQR(@PathVariable Long sessionId, RedirectAttributes redirectAttributes) {
         log.debug("Regenerating QR for session: {}", sessionId);
-        try {
-            tokenService.regenerateQR(sessionId);
-            redirectAttributes.addFlashAttribute("success", "Código QR regenerado exitosamente");
-            return "redirect:/qr/generate/" + sessionId;
-        } catch (IllegalArgumentException e) {
-            log.error("Error regenerating QR: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
-            return "redirect:/sessions";
-        } catch (IllegalStateException e) {
-            log.error("Cannot regenerate QR: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "No se puede regenerar QR: " + e.getMessage());
-            return "redirect:/sessions";
-        } catch (Exception e) {
-            log.error("Unexpected error regenerating QR", e);
-            redirectAttributes.addFlashAttribute("error", "Error inesperado al regenerar QR");
-            return "redirect:/sessions";
-        }
+        tokenService.regenerateQR(sessionId);
+        redirectAttributes.addFlashAttribute("success", "Código QR regenerado exitosamente");
+        return "redirect:/qr/generate/" + sessionId;
     }
     @PostMapping("/validate")
     @ResponseBody

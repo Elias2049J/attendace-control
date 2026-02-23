@@ -2,12 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{layout :: head('Código QR')}"></head>
 <body class="d-flex flex-column min-vh-100">
-    <div th:replace="~{fragments/sidebar-navbar :: sidebar}"></div>
+    <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content"><div class="container py-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
-                <li class="breadcrumb-item"><a th:href="@{/sessions}" class="text-decoration-none">Sesiones</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/calendar}" class="text-decoration-none">Calendario</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Código QR</li>
             </ol>
         </nav>
@@ -79,10 +79,7 @@
                                 </div>
                                 <small class="text-muted mt-1 d-block">
                                     <i class="bi bi-info-circle"></i>
-                                    Este enlace es válido por <strong th:text="${qrToken.validUntil != null ?
-                                        java.time.Duration.between(java.time.LocalDateTime.now(), qrToken.validUntil).toMinutes() + 1 : 'unos'} + ' minutos'">
-                                        1 minutos
-                                    </strong>
+                                    Este enlace es válido por <strong>1 minuto</strong>
                                 </small>
                             </div>
                         </div>
@@ -91,11 +88,11 @@
                             <div class="row mt-3">
                                 <div class="col-md-6">
                                     <p class="mb-1"><strong>Actividad:</strong></p>
-                                    <p th:text="${session.activity.name}">Nombre</p>
+                                    <p th:text="${activityName}">Nombre</p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="mb-1"><strong>Fecha:</strong></p>
-                                    <p th:text="${#temporals.format(session.sessionDate, 'dd/MM/yyyy')}">Fecha</p>
+                                    <p th:text="${#temporals.format(sessionDate, 'dd/MM/yyyy')}">Fecha</p>
                                 </div>
                                 <div class="col-md-6">
                                     <p class="mb-1"><strong>Horario:</strong></p>
@@ -117,7 +114,7 @@
                         </div>
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i>
-                            La página se actualiza automáticamente cada 10 segundos para mostrar nuevas asistencias.
+                            La página se actualizará automáticamente cuando expire el código QR (cada minuto).
                         </div>
                         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
                             <form th:action="@{/qr/regenerate/{id}(id=${session.id})}" method="post" class="d-inline">
@@ -131,8 +128,8 @@
                                     <i class="bi bi-stop-circle"></i> Cerrar Sesión
                                 </button>
                             </form>
-                            <a th:href="@{/sessions}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Volver a Sesiones
+                            <a th:href="@{/calendar}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver al Calendario
                             </a>
                         </div>
                     </div>
@@ -176,29 +173,31 @@
                 </div>
             </div>
         </div>
-    </div></main><div th:replace="~{fragments/mobile-navbar :: bottomNav}"></div>
+    </div></main><div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
     <script th:inline="javascript">
-        const sessionId = [[${session.id}]];
+        const sessionId = /*[[${session.id}]]*/ 0;
         const qrDurationMinutes = 1;
         let startTime = Date.now();
+
         function updateTimer() {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             const remaining = (qrDurationMinutes * 60) - elapsed;
+
             if (remaining <= 0) {
                 document.getElementById('timeRemaining').textContent = '00:00';
                 document.getElementById('timeRemaining').parentElement.parentElement.classList.add('bg-danger', 'bg-opacity-25');
                 document.getElementById('timeRemaining').parentElement.parentElement.classList.remove('bg-warning', 'bg-opacity-25');
+                location.reload();
                 return;
             }
+
             const minutes = Math.floor(remaining / 60);
             const seconds = remaining % 60;
             document.getElementById('timeRemaining').textContent =
                 `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-        function refreshPage() {
-            location.reload();
-        }
+
         function copyToClipboard() {
             const linkInput = document.getElementById('verificationLink');
             linkInput.select();
@@ -218,8 +217,8 @@
                 alert('Error al copiar: ' + err);
             });
         }
+
         setInterval(updateTimer, 1000);
-        setInterval(refreshPage, 10000);
         updateTimer();
     </script>
 </body>

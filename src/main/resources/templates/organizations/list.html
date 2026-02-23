@@ -3,7 +3,7 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{layout :: head('Gestionar Organizaciones')}"></head>
 <body class="d-flex flex-column min-vh-100">
-    <div th:replace="~{fragments/sidebar-navbar :: sidebar}"></div>
+    <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content">
         <div class="container-fluid py-4">
                     <nav aria-label="breadcrumb">
@@ -53,9 +53,14 @@
                                             <span th:text="${org.maxActivities} + ' actividades'">0 actividades</span>
                                         </div>
                                     </div>
-                                    <div class="d-grid">
-                                        <a th:href="@{/organizations/{id}/members(id=${org.id})}"
-                                           class="btn btn-outline-primary btn-sm">
+                                    <div class="d-grid gap-2">
+                                        <a th:href="@{/organizations/{slug}/admin/edit(slug=${org.slug})}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="bi bi-shield-lock"></i>
+                                            Administrar
+                                        </a>
+                                        <a th:href="@{/organizations/{slug}/members(slug=${org.slug})}"
+                                           class="btn btn-outline-secondary btn-sm">
                                             <i class="bi bi-people"></i>
                                             Ver Miembros
                                         </a>
@@ -72,7 +77,7 @@
                     </div>
                 </div>
             </main>
-    <div th:replace="~{fragments/mobile-navbar :: bottomNav}"></div>
+    <div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
 </body>
 </html>

@@ -9,6 +9,7 @@ import com.elias.attendancecontrol.service.EnrollmentService;
 import com.elias.attendancecontrol.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,9 @@ public class EnrollmentController {
     private final ActivityService activityService;
     private final UserService userService;
     private final SecurityUtils securityUtils;
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String listEnrollments(@PathVariable Long activityId, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Listing enrollments for activity: {}", activityId);
         try {
@@ -45,7 +48,9 @@ public class EnrollmentController {
             return "redirect:/activities";
         }
     }
+
     @GetMapping("/enroll")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String showEnrollForm(@PathVariable Long activityId, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Showing enroll form for activity: {}", activityId);
         try {
@@ -68,7 +73,9 @@ public class EnrollmentController {
             return "redirect:/activities";
         }
     }
+
     @PostMapping("/enroll-single")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String enrollSingleUser(@PathVariable Long activityId,
                                    @RequestParam Long userId,
                                    RedirectAttributes redirectAttributes) {
@@ -89,7 +96,9 @@ public class EnrollmentController {
         }
         return "redirect:/activities/" + activityId + "/enrollments";
     }
+
     @PostMapping("/enroll-multiple")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String enrollMultipleUsers(@PathVariable Long activityId,
                                       @RequestParam(required = false) List<Long> userIds,
                                       RedirectAttributes redirectAttributes) {
@@ -115,7 +124,9 @@ public class EnrollmentController {
         }
         return "redirect:/activities/" + activityId + "/enrollments";
     }
+
     @PostMapping("/{userId}/remove")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String removeParticipant(@PathVariable Long activityId,
                                    @PathVariable Long userId,
                                    RedirectAttributes redirectAttributes) {

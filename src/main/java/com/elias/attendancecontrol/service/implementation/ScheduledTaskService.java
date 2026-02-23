@@ -1,7 +1,9 @@
-package com.elias.attendancecontrol.service;
+package com.elias.attendancecontrol.service.implementation;
 import com.elias.attendancecontrol.model.entity.Activity;
 import com.elias.attendancecontrol.model.entity.ActivityStatus;
 import com.elias.attendancecontrol.persistence.repository.ActivityRepository;
+import com.elias.attendancecontrol.service.ActivityService;
+import com.elias.attendancecontrol.service.TokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

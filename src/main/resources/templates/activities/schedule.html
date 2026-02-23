@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{layout :: head('Horario de Actividad')}"></head>
+<head th:replace="~{layout :: head('Programación')}"></head>
 <body class="d-flex flex-column min-vh-100">
-    <div th:replace="~{fragments/sidebar-navbar :: sidebar}"></div>
+    <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content">
         <div class="container-fluid py-4">
             <nav aria-label="breadcrumb">
@@ -10,7 +10,7 @@
                     <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
                     <li class="breadcrumb-item"><a th:href="@{/activities}" class="text-decoration-none">Actividades</a></li>
                     <li class="breadcrumb-item"><a th:href="@{/activities/{id}(id=${activity.id})}" class="text-decoration-none" th:text="${activity.name}">Actividad</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Horario</li>
+                    <li class="breadcrumb-item active" aria-current="page">Programación</li>
                 </ol>
             </nav>
             <div class="mb-3">
@@ -18,40 +18,100 @@
                     <i class="bi bi-arrow-left"></i> Volver
                 </a>
             </div>
-            <h2><i class="bi bi-calendar3"></i> Horario: <span th:text="${activity.name}"></span></h2>
-            <div class="card mt-4">
+            <h2><i class="bi bi-calendar3"></i> Programación: <span th:text="${activity.name}"></span></h2>
+            <p class="text-muted">Gestionar sesiones de esta actividad</p>
+            <hr>
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill"></i> <span th:text="${success}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead>
+                            <thead class="table-light">
                                 <tr>
                                     <th>Fecha</th>
-                                    <th>Hora</th>
+                                    <th>Horario</th>
+                                    <th>Tolerancia</th>
                                     <th>Estado</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="sessionEntity : ${sessions}">
-                                    <td th:text="${#temporals.format(sessionEntity.sessionDate, 'dd/MM/yyyy')}">Fecha</td>
-                                    <td th:text="${(sessionEntity.activity != null and sessionEntity.activity.recurrenceRule != null) ? sessionEntity.activity.recurrenceRule.startTime : '-'}">Hora</td>
                                     <td>
-                                        <span th:class="${sessionEntity.status == T(com.elias.attendancecontrol.model.entity.SessionStatus).ACTIVE ? 'badge bg-success' :
-                                                          (sessionEntity.status == T(com.elias.attendancecontrol.model.entity.SessionStatus).CLOSED ? 'badge bg-secondary' :
-                                                          (sessionEntity.status == T(com.elias.attendancecontrol.model.entity.SessionStatus).CANCELLED ? 'badge bg-danger' : 'badge bg-info'))}"
-                                              th:text="${sessionEntity.status}">Estado</span>
+                                        <span th:text="${#temporals.format(sessionEntity.sessionDate, 'dd/MM/yyyy')}"></span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${#temporals.format(sessionEntity.startTime, 'hh:mm a')}">08:00 AM</span>
+                                        -
+                                        <span th:text="${#temporals.format(sessionEntity.endTime, 'hh:mm a')}">10:00 AM</span>
+                                    </td>
+                                    <td>
+                                        <span th:text="${sessionEntity.toleranceMinutes}">15</span> min
+                                    </td>
+                                    <td>
+                                        <span th:if="${sessionEntity.status.name() == 'PLANNED'}">
+                                            <i class="bi bi-circle"></i> Planificada
+                                        </span>
+                                        <span th:if="${sessionEntity.status.name() == 'ACTIVE'}">
+                                            <i class="bi bi-play-circle"></i> Activa
+                                        </span>
+                                        <span th:if="${sessionEntity.status.name() == 'CLOSED'}">
+                                            <i class="bi bi-check-circle"></i> Cerrada
+                                        </span>
+                                        <span th:if="${sessionEntity.status.name() == 'CANCELLED'}">
+                                            <i class="bi bi-x-circle"></i> Cancelada
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <form th:if="${sessionEntity.status.name() == 'PLANNED'}"
+                                                  th:action="@{/sessions/{id}/activate(id=${sessionEntity.id})}"
+                                                  method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-success" title="Activar">
+                                                    <i class="bi bi-play-circle"></i>
+                                                </button>
+                                            </form>
+                                            <a th:if="${sessionEntity.status.name() == 'ACTIVE'}"
+                                               th:href="@{/qr/generate/{id}(id=${sessionEntity.id})}"
+                                               class="btn btn-outline-info" title="Generar QR">
+                                                <i class="bi bi-qr-code"></i>
+                                            </a>
+                                            <a th:if="${sessionEntity.status.name() == 'ACTIVE'}"
+                                               th:href="@{/attendance/manual/{id}(id=${sessionEntity.id})}"
+                                               class="btn btn-outline-primary" title="Registrar Asistencias">
+                                                <i class="bi bi-clipboard-check"></i>
+                                            </a>
+                                            <form th:if="${sessionEntity.status.name() == 'ACTIVE'}"
+                                                  th:action="@{/sessions/{id}/close(id=${sessionEntity.id})}"
+                                                  method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-secondary" title="Cerrar">
+                                                    <i class="bi bi-stop-circle"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(sessions)}">
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                        No hay sesiones programadas para esta actividad
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div th:if="${#lists.isEmpty(sessions)}" class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> No hay sesiones programadas
-                    </div>
                 </div>
             </div>
         </div>
     </main>
-    <div th:replace="~{fragments/mobile-navbar :: bottomNav}"></div>
+    <div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
 </body>
 </html>

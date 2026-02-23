@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum RecurrenceType {
-    NONE("Ninguna"),
+    NONE("Evento Único"),
     DAILY("Diario"),
     WEEKLY("Semanal"),
     MONTHLY("Mensual");

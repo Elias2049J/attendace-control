@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Acceso Denegado')}"></head>
+<body class="d-flex flex-column min-vh-100">
+    <div th:replace="~{layout :: sidebar}"></div>
+    <main class="flex-grow-1" id="main-content">
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark text-center">
+                            <h2 class="mb-0">
+                                <i class="bi bi-shield-exclamation fs-1"></i>
+                            </h2>
+                            <h3>Acceso Denegado</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <div class="mb-4">
+                                <h4 class="text-warning" th:text="${error ?: 'Acceso No Autorizado'}">Error</h4>
+                                <p class="text-muted" th:text="${message ?: 'No tiene permisos para acceder a este recurso'}">Mensaje</p>
+                            </div>
+                            <div th:if="${timestamp}" class="mb-3">
+                                <p class="mb-1 text-muted"><small>Fecha del intento:</small></p>
+                                <small th:text="${#temporals.format(timestamp, 'dd/MM/yyyy HH:mm:ss')}">Timestamp</small>
+                            </div>
+                            <div th:if="${path}" class="mb-4">
+                                <p class="mb-1 text-muted"><small>Ruta solicitada:</small></p>
+                                <code th:text="${path}">/path</code>
+                            </div>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Este intento ha sido registrado. Si cree que esto es un error, contacte al administrador.
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <button onclick="history.back()" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Volver Atrás
+                                </button>
+                                <a th:href="@{/}" class="btn btn-primary">
+                                    <i class="bi bi-house"></i> Ir al Inicio
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            ¿Necesitas acceso? Contacta al administrador de tu organización
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div th:replace="~{layout :: mobileNav}"></div>
+    <div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>
+

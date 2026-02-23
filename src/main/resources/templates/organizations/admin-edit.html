@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Administrar Organización')}"></head>
+<body class="d-flex flex-column min-vh-100">
+    <div th:replace="~{layout :: sidebar}"></div>
+    <main class="flex-grow-1" id="main-content">
+        <div class="container py-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/organizations/all}" class="text-decoration-none">Organizaciones</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Administrar</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="bi bi-shield-lock"></i> Administrar Organización</h2>
+                    <p class="text-muted">Panel exclusivo de System Admin - Gestión avanzada de la organización</p>
+                    <hr>
+                </div>
+            </div>
+            <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill"></i>
+                <span th:text="${success}">Éxito</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span th:text="${error}">Error</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información de la Organización</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <strong><i class="bi bi-building"></i> Nombre:</strong>
+                                </div>
+                                <div class="col-md-9">
+                                    <span th:text="${organization.name}">Nombre</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <strong><i class="bi bi-link-45deg"></i> Slug:</strong>
+                                </div>
+                                <div class="col-md-9">
+                                    <code th:text="${organization.slug}">slug</code>
+                                </div>
+                            </div>
+                            <div class="row mb-3" th:if="${organization.description}">
+                                <div class="col-md-3">
+                                    <strong><i class="bi bi-file-text"></i> Descripción:</strong>
+                                </div>
+                                <div class="col-md-9">
+                                    <span th:text="${organization.description}">Descripción</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3" th:if="${organization.contactEmail}">
+                                <div class="col-md-3">
+                                    <strong><i class="bi bi-envelope"></i> Email:</strong>
+                                </div>
+                                <div class="col-md-9">
+                                    <span th:text="${organization.contactEmail}">Email</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3" th:if="${organization.phone}">
+                                <div class="col-md-3">
+                                    <strong><i class="bi bi-telephone"></i> Teléfono:</strong>
+                                </div>
+                                <div class="col-md-9">
+                                    <span th:text="${organization.phone}">Teléfono</span>
+                                </div>
+                            </div>
+                            <div class="row" th:if="${organization.address}">
+                                <div class="col-md-3">
+                                    <strong><i class="bi bi-geo-alt"></i> Dirección:</strong>
+                                </div>
+                                <div class="col-md-9">
+                                    <span th:text="${organization.address}">Dirección</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-warning">
+                            <h5 class="mb-0"><i class="bi bi-gear"></i> Configuración Administrativa</h5>
+                        </div>
+                        <div class="card-body">
+                            <form th:action="@{/organizations/{slug}/admin/update(slug=${organization.slug})}" method="post" th:object="${organization}">
+                                <input type="hidden" th:field="*{id}">
+
+                                <h6 class="border-bottom pb-2 mb-3">Estado de la Organización</h6>
+                                <div class="mb-4">
+                                    <label class="form-label">Estado Actual:</label>
+                                    <div class="mb-3">
+                                        <span th:if="${organization.active}" class="badge bg-success fs-6">
+                                            <i class="bi bi-check-circle"></i> Activa
+                                        </span>
+                                        <span th:unless="${organization.active}" class="badge bg-danger fs-6">
+                                            <i class="bi bi-x-circle"></i> Inactiva
+                                        </span>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="active" th:field="*{active}">
+                                        <label class="form-check-label" for="active">
+                                            <strong>Organización Activa</strong>
+                                            <br><small class="text-muted">Cuando está inactiva, los usuarios no pueden acceder al sistema</small>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <hr class="my-4">
+
+                                <h6 class="border-bottom pb-2 mb-3">Plan de Suscripción</h6>
+                                <div class="mb-3">
+                                    <label for="plan" class="form-label">Seleccionar Plan *</label>
+                                    <select class="form-select form-select-lg" id="plan" th:field="*{plan}" required>
+                                        <option value="FREE">Plan Gratuito (50 usuarios, 10 actividades)</option>
+                                        <option value="BASIC">Plan Básico (200 usuarios, 50 actividades)</option>
+                                        <option value="PREMIUM">Plan Premium (1000 usuarios, 200 actividades)</option>
+                                        <option value="ENTERPRISE">Plan Empresarial (Ilimitado)</option>
+                                    </select>
+                                    <div class="form-text">El cambio de plan afecta los límites de usuarios y actividades</div>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>Límites actuales:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>Usuarios: <strong th:text="${organization.maxUsers}">50</strong></li>
+                                        <li>Actividades: <strong th:text="${organization.maxActivities}">10</strong></li>
+                                    </ul>
+                                </div>
+
+                                <hr class="my-4">
+
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    <strong>Advertencia:</strong> Los cambios en esta sección pueden afectar el funcionamiento de la organización. Úsalos con precaución.
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-between mt-4">
+                                    <a th:href="@{/organizations/all}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-left"></i> Volver a Organizaciones
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle"></i> Guardar Cambios
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="bi bi-exclamation-octagon"></i> Zona de Peligro</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Las acciones en esta sección son irreversibles y pueden causar pérdida de datos.</p>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-danger" disabled>
+                                    <i class="bi bi-trash"></i> Eliminar Organización (Próximamente)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div th:replace="~{layout :: mobileNav}"></div>
+    <div th:replace="~{layout :: scripts}"></div>
+</body>
+</html>
+
+
+
+
+

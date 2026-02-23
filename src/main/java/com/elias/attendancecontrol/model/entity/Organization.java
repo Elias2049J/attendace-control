@@ -40,9 +40,6 @@ public class Organization {
     @Size(max = 500, message = "La dirección no puede exceder 500 caracteres")
     @Column(name = "address", length = 500)
     private String address;
-    @Size(max = 500, message = "La URL del logo no puede exceder 500 caracteres")
-    @Column(name = "logo_url", length = 500)
-    private String logoUrl;
     @NotNull(message = "El estado activo es obligatorio")
     @Column(name = "active", nullable = false)
     private Boolean active = true;
@@ -62,7 +59,7 @@ public class Organization {
     private LocalDateTime expirationDate; // Para planes de pago
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    private User owner; // Usuario que creó la organización
+    private User owner;
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL)

@@ -54,11 +54,21 @@ public class ActivityServiceImpl implements ActivityService {
         });
 
         Activity savedActivity = activityRepository.save(activity);
-        logService.log(builder -> builder
-                .eventType("ACTIVITY_CREATED")
-                .description("Actividad creada: " + savedActivity.getName())
-                .details("ID: " + savedActivity.getId())
+
+        securityUtils.getCurrentUser().ifPresentOrElse(
+            currentUser -> logService.log(builder -> builder
+                    .eventType("ACTIVITY_CREATED")
+                    .description("Actividad creada: " + savedActivity.getName())
+                    .user(currentUser)
+                    .details("ID: " + savedActivity.getId())
+            ),
+            () -> logService.log(builder -> builder
+                    .eventType("ACTIVITY_CREATED")
+                    .description("Actividad creada: " + savedActivity.getName())
+                    .details("ID: " + savedActivity.getId())
+            )
         );
+
         log.info("Activity created successfully: {}", savedActivity.getName());
         return savedActivity;
     }
@@ -72,11 +82,16 @@ public class ActivityServiceImpl implements ActivityService {
         existingActivity.setDescription(activity.getDescription());
         existingActivity.setResponsible(activity.getResponsible());
         Activity updatedActivity = activityRepository.save(existingActivity);
-        logService.log(builder -> builder
-                .eventType("ACTIVITY_UPDATED")
-                .description("Actividad actualizada: " + updatedActivity.getName())
-                .details("ID: " + id)
+
+        securityUtils.getCurrentUser().ifPresent(currentUser ->
+            logService.log(builder -> builder
+                    .eventType("ACTIVITY_UPDATED")
+                    .description("Actividad actualizada: " + updatedActivity.getName())
+                    .user(currentUser)
+                    .details("ID: " + id)
+            )
         );
+
         log.info("Activity updated successfully: {}", id);
         return updatedActivity;
     }
@@ -97,11 +112,15 @@ public class ActivityServiceImpl implements ActivityService {
 
             recurrenceService.generateSessionsForActivity(id);
 
-            logService.log(builder -> builder
-                    .eventType("ACTIVITY_ACTIVATED")
-                    .description("Actividad activada y sesiones generadas: " + activity.getName())
-                    .details("ID: " + id + ", Estado: " + activity.getStatus())
+            securityUtils.getCurrentUser().ifPresent(currentUser ->
+                logService.log(builder -> builder
+                        .eventType("ACTIVITY_ACTIVATED")
+                        .description("Actividad activada y sesiones generadas: " + activity.getName())
+                        .user(currentUser)
+                        .details("ID: " + id + ", Estado: " + activity.getStatus())
+                )
             );
+
             log.info("Activity activated successfully and sessions generated: {}", id);
         } else {
             throw new IllegalStateException("Solo se pueden activar actividades en estado Borrador. Estado actual: " + activity.getStatus().getDisplayName());
@@ -144,10 +163,15 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activity.setStatus(ActivityStatus.PAUSED);
         activityRepository.save(activity);
-        logService.log(builder -> builder
-                .eventType("ACTIVITY_PAUSED")
-                .description("Actividad pausada: " + activity.getName())
+
+        securityUtils.getCurrentUser().ifPresent(currentUser ->
+            logService.log(builder -> builder
+                    .eventType("ACTIVITY_PAUSED")
+                    .description("Actividad pausada: " + activity.getName())
+                    .user(currentUser)
+            )
         );
+
         log.info("Activity paused successfully: {}", activityId);
     }
     @Override
@@ -169,10 +193,15 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setStatus(ActivityStatus.COMPLETED);
         activityRepository.save(activity);
         enrollmentService.completeAllEnrollments(activityId);
-        logService.log(builder -> builder
-                .eventType("ACTIVITY_COMPLETED")
-                .description("Actividad completada: " + activity.getName())
+
+        securityUtils.getCurrentUser().ifPresent(currentUser ->
+            logService.log(builder -> builder
+                    .eventType("ACTIVITY_COMPLETED")
+                    .description("Actividad completada: " + activity.getName())
+                    .user(currentUser)
+            )
         );
+
         log.info("Activity completed successfully: {}", activityId);
     }
     @Override
@@ -185,10 +214,15 @@ public class ActivityServiceImpl implements ActivityService {
         }
         activity.setStatus(ActivityStatus.CANCELLED);
         activityRepository.save(activity);
-        logService.log(builder -> builder
-                .eventType("ACTIVITY_CANCELLED")
-                .description("Actividad cancelada: " + activity.getName())
+
+        securityUtils.getCurrentUser().ifPresent(currentUser ->
+            logService.log(builder -> builder
+                    .eventType("ACTIVITY_CANCELLED")
+                    .description("Actividad cancelada: " + activity.getName())
+                    .user(currentUser)
+            )
         );
+
         log.info("Activity cancelled successfully: {}", activityId);
     }
     @Override
@@ -226,11 +260,16 @@ public class ActivityServiceImpl implements ActivityService {
         validateStatusTransition(oldStatus, newStatus);
         activity.setStatus(newStatus);
         activityRepository.save(activity);
-        logService.log(builder -> builder
-                .eventType("ACTIVITY_STATUS_CHANGED")
-                .description("Estado de actividad cambiado: " + activity.getName())
-                .details("De " + oldStatus + " a " + newStatus)
+
+        securityUtils.getCurrentUser().ifPresent(currentUser ->
+            logService.log(builder -> builder
+                    .eventType("ACTIVITY_STATUS_CHANGED")
+                    .description("Estado de actividad cambiado: " + activity.getName())
+                    .user(currentUser)
+                    .details("De " + oldStatus + " a " + newStatus)
+            )
         );
+
         log.info("Activity status changed: {} -> {}", oldStatus, newStatus);
     }
     private void validateStatusTransition(ActivityStatus current, ActivityStatus target) {

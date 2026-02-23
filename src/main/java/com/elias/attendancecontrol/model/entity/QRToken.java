@@ -25,10 +25,4 @@ public class QRToken extends Token {
     @NotNull(message = "La fecha de fin de validez es obligatoria")
     @Column(name = "valid_until", nullable = false)
     private LocalDateTime validUntil;
-    public QRToken(Long id, String token, LocalDateTime expirationTime, Boolean active, LocalDateTime createdDate, Session session, LocalDateTime validFrom, LocalDateTime validUntil) {
-        super(id, token, expirationTime, active, createdDate);
-        this.session = session;
-        this.validFrom = validFrom;
-        this.validUntil = validUntil;
-    }
 }

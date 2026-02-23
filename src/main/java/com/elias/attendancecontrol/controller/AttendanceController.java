@@ -2,22 +2,19 @@ package com.elias.attendancecontrol.controller;
 import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.Attendance;
 import com.elias.attendancecontrol.model.entity.AttendanceStatus;
-import com.elias.attendancecontrol.model.entity.QRToken;
 import com.elias.attendancecontrol.model.entity.Session;
 import com.elias.attendancecontrol.model.entity.User;
-import com.elias.attendancecontrol.persistence.repository.QrTokenRepository;
 import com.elias.attendancecontrol.service.AttendanceService;
 import com.elias.attendancecontrol.service.EnrollmentService;
 import com.elias.attendancecontrol.service.SessionService;
-import com.elias.attendancecontrol.service.TokenService;
 import com.elias.attendancecontrol.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,67 +27,11 @@ public class AttendanceController {
     private final UserService userService;
     private final SessionService sessionService;
     private final SecurityUtils securityUtils;
-    private final TokenService tokenService;
-    private final QrTokenRepository qrTokenRepository;
     private final EnrollmentService enrollmentService;
 
-    @GetMapping("/org/{orgSlug}/attendance/verify")
-    public String verifyQRAndRegister(
-            @PathVariable String orgSlug,
-            @RequestParam String token,
-            Model model,
-            RedirectAttributes redirectAttributes) {
-        log.debug("Verifying attendance with token: {} for organization slug: {}", token, orgSlug);
-        try {
-            User currentUser = securityUtils.getCurrentUserOrThrow();
-            log.debug("User {} attempting to register attendance", currentUser.getUsername());
 
-            if (!tokenService.validateQR(token)) {
-                log.warn("Invalid or expired QR token: {}", token);
-                redirectAttributes.addFlashAttribute("error", "Código QR inválido o expirado");
-                return "redirect:/";
-            }
-
-            QRToken qrToken = qrTokenRepository.findByToken(token)
-                    .orElseThrow(() -> new IllegalArgumentException("Token QR no encontrado"));
-
-            Session session = qrToken.getSession();
-            String sessionOrgSlug = session.getActivity().getOrganization().getSlug();
-
-            if (!sessionOrgSlug.equals(orgSlug)) {
-                log.warn("Organization slug mismatch. Expected: {}, Got: {}", sessionOrgSlug, orgSlug);
-                redirectAttributes.addFlashAttribute("error", "Organización no válida para esta sesión");
-                return "redirect:/";
-            }
-
-            Attendance attendance = attendanceService.registerAttendance(currentUser.getId(), token);
-
-            model.addAttribute("attendance", attendance);
-            model.addAttribute("session", session);
-            model.addAttribute("activity", session.getActivity());
-            model.addAttribute("user", currentUser);
-            model.addAttribute("registrationTime", LocalDateTime.now());
-            model.addAttribute("organizationSlug", orgSlug);
-
-            log.info("Attendance registered successfully via QR link for user: {} in session: {} (org: {})",
-                    currentUser.getUsername(), session.getId(), orgSlug);
-
-            return "attendance/verify";
-        } catch (IllegalArgumentException e) {
-            log.error("Error verifying QR: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
-            return "redirect:/";
-        } catch (IllegalStateException e) {
-            log.error("Cannot register attendance: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", "No se puede registrar asistencia: " + e.getMessage());
-            return "redirect:/";
-        } catch (Exception e) {
-            log.error("Unexpected error during QR verification", e);
-            redirectAttributes.addFlashAttribute("error", "Error inesperado al procesar la solicitud");
-            return "redirect:/";
-        }
-    }
     @GetMapping("/manual/{sessionId}")
+    @PreAuthorize("isAuthenticated()")
     public String showManualRegistrationForm(@PathVariable Long sessionId, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Showing manual attendance registration form for session: {}", sessionId);
         try {
@@ -136,6 +77,7 @@ public class AttendanceController {
     }
 
     @PostMapping("/manual-registration")
+    @PreAuthorize("isAuthenticated()")
     public String manualRegistrationBatch(@RequestParam Long sessionId,
                                           @RequestParam Map<String, String> allParams,
                                           RedirectAttributes redirectAttributes) {
@@ -176,7 +118,9 @@ public class AttendanceController {
             return "redirect:/attendance/manual/" + sessionId;
         }
     }
+
     @GetMapping("/history")
+    @PreAuthorize("isAuthenticated()")
     public String getAttendanceHistory(@RequestParam(required = false) Long userId,
                                       @RequestParam(required = false) Long sessionId,
                                       Model model) {

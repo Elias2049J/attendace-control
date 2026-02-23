@@ -9,9 +9,7 @@ public interface ActivityService {
     void activateActivity(Long id);
     List<Activity> listActivities();
     Activity getActivityById(Long id);
-    @Transactional(readOnly = true)
     List<Activity> findActiveActivities();
-    @Transactional(readOnly = true)
     List<Activity> findByResponsible(Long userId);
     void pauseActivity(Long activityId);
     void completeActivity(Long activityId);

@@ -25,6 +25,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final SessionRepository sessionRepository;
     private final LogService logService;
     private final OrganizationPlanProperties planProperties;
+
     @Override
     @Transactional
     public Organization registerOrganization(Organization organization, User owner) {
@@ -51,18 +52,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Organization registered successfully: {}", savedOrg.getName());
         return savedOrg;
     }
-    @Override
-    @Transactional
-    public Organization createOrganization(Organization organization) {
-        log.debug("Creating organization: {}", organization.getName());
-        if (organizationRepository.existsBySlug(organization.getSlug())) {
-            throw new IllegalArgumentException("El identificador (slug) ya está en uso");
-        }
-        applyPlanLimitsFromConfig(organization);
-        Organization savedOrg = organizationRepository.save(organization);
-        log.info("Organization created: {}", savedOrg.getId());
-        return savedOrg;
-    }
+
     @Override
     @Transactional
     public Organization updateOrganization(Long id, Organization organization) {
@@ -73,7 +63,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         existingOrg.setContactEmail(organization.getContactEmail());
         existingOrg.setPhone(organization.getPhone());
         existingOrg.setAddress(organization.getAddress());
-        existingOrg.setLogoUrl(organization.getLogoUrl());
         Organization updatedOrg = organizationRepository.save(existingOrg);
         logService.log(builder -> builder
                 .eventType("ORGANIZATION_UPDATED")
@@ -82,6 +71,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Organization updated: {}", id);
         return updatedOrg;
     }
+
     @Override
     @Transactional
     public void deactivateOrganization(Long id) {
@@ -95,43 +85,39 @@ public class OrganizationServiceImpl implements OrganizationService {
         );
         log.info("Organization deactivated: {}", id);
     }
+
     @Override
     @Transactional(readOnly = true)
     public Organization getOrganizationById(Long id) {
         return organizationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Organización no encontrada"));
     }
+
     @Override
     @Transactional(readOnly = true)
     public Optional<Organization> findById(Long id) {
         return organizationRepository.findById(id);
     }
+
     @Override
     @Transactional(readOnly = true)
     public Organization getOrganizationBySlug(String slug) {
         return organizationRepository.findBySlug(slug)
                 .orElseThrow(() -> new IllegalArgumentException("Organización no encontrada"));
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<Organization> listOrganizations() {
         return organizationRepository.findAll();
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<Organization> findAll() {
         return listOrganizations();
     }
-    @Override
-    @Transactional(readOnly = true)
-    public List<Organization> listActiveOrganizations() {
-        return organizationRepository.findByActiveTrue();
-    }
-    @Override
-    @Transactional(readOnly = true)
-    public boolean isSlugAvailable(String slug) {
-        return !organizationRepository.existsBySlug(slug);
-    }
+
     @Override
     @Transactional(readOnly = true)
     public boolean canAddUser(Long organizationId) {
@@ -142,6 +128,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
         return currentUsers < org.getMaxUsers();
     }
+
     @Override
     @Transactional(readOnly = true)
     public boolean canAddActivity(Long organizationId) {
@@ -152,18 +139,21 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
         return currentActivities < org.getMaxActivities();
     }
+
     @Override
     @Transactional(readOnly = true)
     public long getUserCount(Long organizationId) {
         Organization org = getOrganizationById(organizationId);
         return organizationRepository.countUsersByOrganization(org);
     }
+
     @Override
     @Transactional(readOnly = true)
     public long getActivityCount(Long organizationId) {
         Organization org = getOrganizationById(organizationId);
         return organizationRepository.countActivitiesByOrganization(org);
     }
+
     @Override
     @Transactional
     public void addUserToOrganization(Long userId, Long organizationId) {
@@ -183,6 +173,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         );
         log.info("User {} added to organization {}", userId, organizationId);
     }
+
     @Override
     @Transactional
     public void removeUserFromOrganization(Long userId) {
@@ -199,6 +190,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         );
         log.info("User {} removed from organization", userId);
     }
+
     @Override
     @Transactional
     public Organization changePlan(Long organizationId, OrganizationPlan newPlan) {
@@ -216,6 +208,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Plan changed for organization {}: {} -> {}", organizationId, oldPlan, newPlan);
         return updatedOrg;
     }
+
     private void applyPlanLimitsFromConfig(Organization organization) {
         organization.applyPlanLimits(
                 planProperties.getFree().getMaxUsers(),

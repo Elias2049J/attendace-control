@@ -5,6 +5,7 @@ import com.elias.attendancecontrol.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -17,14 +18,18 @@ public class ReportController {
     private final ReportService reportService;
     private final ActivityService activityService;
     private final UserService userService;
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showReportsMenu(Model model) {
         log.debug("Showing reports menu");
         model.addAttribute("activities", activityService.listActivities());
         model.addAttribute("users", userService.listUsers());
         return "reports/menu";
     }
+
     @PostMapping("/generate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String generateReport(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
                                  Model model) {
@@ -41,7 +46,9 @@ public class ReportController {
             return "reports/menu";
         }
     }
+
     @PostMapping("/activity/{activityId}")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String generateActivityReport(@PathVariable Long activityId,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -60,7 +67,9 @@ public class ReportController {
             return "reports/menu";
         }
     }
+
     @PostMapping("/user/{userId}")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String generateUserReport(@PathVariable Long userId,
                                      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,

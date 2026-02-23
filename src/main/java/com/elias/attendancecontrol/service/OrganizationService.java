@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Optional;
 public interface OrganizationService {
     Organization registerOrganization(Organization organization, User owner);
-    Organization createOrganization(Organization organization);
     Organization updateOrganization(Long id, Organization organization);
     void deactivateOrganization(Long id);
     Organization getOrganizationById(Long id);
@@ -14,8 +13,6 @@ public interface OrganizationService {
     Organization getOrganizationBySlug(String slug);
     List<Organization> listOrganizations();
     List<Organization> findAll();
-    List<Organization> listActiveOrganizations();
-    boolean isSlugAvailable(String slug);
     boolean canAddUser(Long organizationId);
     boolean canAddActivity(Long organizationId);
     long getUserCount(Long organizationId);

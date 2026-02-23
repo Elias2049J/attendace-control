@@ -211,12 +211,8 @@
 
 /* Links */
 a {
-    color: var(--mirae-accent-green);
+    color: var(--mirae-primary-dark);
     text-decoration: none;
-}
-
-a:hover {
-    color: var(--mirae-accent-green-hover);
 }
 
 /* Tables */

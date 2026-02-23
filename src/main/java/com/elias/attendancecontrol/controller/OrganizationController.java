@@ -1,7 +1,6 @@
 package com.elias.attendancecontrol.controller;
 import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.dto.OrganizationRegistrationDTO;
-import com.elias.attendancecontrol.model.dto.OrganizationStatsDTO;
 import com.elias.attendancecontrol.model.entity.Organization;
 import com.elias.attendancecontrol.model.entity.OrganizationPlan;
 import com.elias.attendancecontrol.model.entity.SystemRole;
@@ -31,7 +30,7 @@ public class OrganizationController {
     private final SecurityUtils securityUtils;
     private final LogService logService;
 
-    @GetMapping
+    @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public String listOrganizations(Model model) {
         log.debug("Listing all organizations for ADMIN");
@@ -42,28 +41,40 @@ public class OrganizationController {
             return "organizations/list";
         } catch (Exception e) {
             log.error("Error listing organizations: {}", e.getMessage());
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("error", "Error al listar organizaciones: " + e.getMessage());
+            model.addAttribute("organizations", List.of());
+            model.addAttribute("activeMenu", "organizations-list");
             return "organizations/list";
         }
     }
-    @GetMapping("/{id}/members")
-    @PreAuthorize("hasRole('ADMIN')")
-    public String showOrganizationMembers(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        log.debug("Showing members of organization: {}", id);
+
+    @GetMapping("/{slug}/members")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    public String showOrganizationMembers(@PathVariable String slug, Model model, RedirectAttributes redirectAttributes) {
+        log.debug("Showing members of organization: {}", slug);
         try {
-            Organization organization = organizationService.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Organización no encontrada"));
-            List<User> members = userService.findByOrganizationId(id);
-            model.addAttribute("organization", organization);
+            User currentUser = securityUtils.getCurrentUserOrThrow();
+            Organization org = currentUser.getOrganization();
+
+            if (!org.getSlug().equals(slug)) {
+                log.warn("User {} attempted to access members of organization {} without permission",
+                        currentUser.getUsername(), slug);
+                redirectAttributes.addFlashAttribute("error", "No tiene acceso a esta organización");
+                return "redirect:/organizations/" + org.getSlug() + "/dashboard";
+            }
+
+            List<User> members = userService.findByOrganizationId(org.getId());
+            model.addAttribute("organization", org);
             model.addAttribute("members", members);
-            model.addAttribute("activeMenu", "organizations-list");
+            model.addAttribute("activeMenu", "organizations");
             return "organizations/members";
         } catch (Exception e) {
             log.error("Error showing organization members: {}", e.getMessage());
             redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/organizations";
+            return "redirect:/";
         }
     }
+
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
         log.debug("Showing organization registration form");
@@ -131,83 +142,93 @@ public class OrganizationController {
             return "organizations/register";
         }
     }
-    @GetMapping("/manage")
-    public String manageOrganization(Model model) {
-        log.debug("Showing organization management panel");
+    @GetMapping("/{slug}/dashboard")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    public String manageOrganization(@PathVariable String slug, Model model, RedirectAttributes redirectAttributes) {
+        log.debug("Showing organization dashboard for slug: {}", slug);
         try {
-            User currentUser = securityUtils.getCurrentUser().orElseThrow();
-            if (currentUser.getOrganization() == null) {
-                return "redirect:/";
-            }
+            User currentUser = securityUtils.getCurrentUserOrThrow();
             Organization org = currentUser.getOrganization();
+
+            if (!org.getSlug().equals(slug)) {
+                log.warn("User {} attempted to access organization {} without permission",
+                        currentUser.getUsername(), slug);
+                redirectAttributes.addFlashAttribute("error", "No tiene acceso a esta organización");
+                return "redirect:/organizations/" + org.getSlug() + "/dashboard";
+            }
+
             model.addAttribute("organization", org);
             model.addAttribute("userCount", organizationService.getUserCount(org.getId()));
             model.addAttribute("activityCount", organizationService.getActivityCount(org.getId()));
             model.addAttribute("currentUser", currentUser);
-            return "organizations/manage";
+            model.addAttribute("activeMenu", "organizations");
+            return "organizations/dashboard";
         } catch (Exception e) {
-            log.error("Error loading organization management: {}", e.getMessage());
+            log.error("Error loading organization dashboard: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al cargar el panel de organización");
             return "redirect:/";
         }
     }
-    @GetMapping("/edit")
-    public String showEditForm(Model model) {
-        log.debug("Showing organization edit form");
+
+    @GetMapping("/{slug}/settings")
+    @PreAuthorize("hasAnyRole('ORG_OWNER')")
+    public String showSettingsForm(@PathVariable String slug, Model model, RedirectAttributes redirectAttributes) {
+        log.debug("Showing organization settings form for slug: {}", slug);
         try {
-            User currentUser = securityUtils.getCurrentUser().orElseThrow();
+            User currentUser = securityUtils.getCurrentUserOrThrow();
             Organization org = currentUser.getOrganization();
-            if (org == null) {
-                return "redirect:/";
+
+            if (!org.getSlug().equals(slug)) {
+                log.warn("User {} attempted to access settings of organization {} without permission",
+                        currentUser.getUsername(), slug);
+                redirectAttributes.addFlashAttribute("error", "No tiene acceso a esta organización");
+                return "redirect:/organizations/" + org.getSlug() + "/dashboard";
             }
+
             model.addAttribute("organization", org);
-            model.addAttribute("plans", OrganizationPlan.values());
-            return "organizations/edit";
+            return "organizations/settings";
         } catch (Exception e) {
-            log.error("Error showing edit form: {}", e.getMessage());
-            return "redirect:/organizations/manage";
+            log.error("Error showing settings form: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al cargar la configuración");
+            return "redirect:/";
         }
     }
-    @PostMapping("/update")
-    public String updateOrganization(@Valid @ModelAttribute Organization organization,
+
+    @PostMapping("/{slug}/settings/update")
+    @PreAuthorize("hasAnyRole('ORG_OWNER')")
+    public String updateOrganization(@PathVariable String slug,
+                                    @Valid @ModelAttribute Organization organization,
                                     BindingResult result,
                                     HttpServletRequest request,
                                     Model model,
                                     RedirectAttributes redirectAttributes) {
-        log.debug("Updating organization: {}", organization.getId());
+        log.debug("Updating organization with slug: {}", slug);
+
         if (result.hasErrors()) {
-            model.addAttribute("plans", OrganizationPlan.values());
-            return "organizations/edit";
+            model.addAttribute("organization", organization);
+            return "organizations/settings";
         }
+
         try {
             User currentUser = securityUtils.getCurrentUserOrThrow();
             Organization currentOrg = currentUser.getOrganization();
-            if (currentOrg == null || !currentOrg.getId().equals(organization.getId())) {
+
+            if (!currentOrg.getSlug().equals(slug) || !currentOrg.getId().equals(organization.getId())) {
                 log.warn("User {} attempted to update organization {} without permission",
-                        currentUser.getUsername(), organization.getId());
+                        currentUser.getUsername(), slug);
                 logService.log(builder -> builder
                     .eventType("UNAUTHORIZED_ORG_UPDATE_ATTEMPT")
                     .description("Intento no autorizado de actualizar organización")
                     .user(currentUser)
                     .ipAddress(request.getRemoteAddr())
-                    .details("Target org ID: " + organization.getId())
+                    .details("Target org slug: " + slug)
                 );
-                redirectAttributes.addFlashAttribute("error", "No tienes permisos para editar esta organización");
-                return "redirect:/organizations/manage";
+                redirectAttributes.addFlashAttribute("error", "No tiene permisos para editar esta organización");
+                return "redirect:/organizations/" + currentOrg.getSlug() + "/dashboard";
             }
-            if (!securityUtils.isOrganizationOwner()) {
-                log.warn("Non-owner user {} attempted to update organization",
-                        currentUser.getUsername());
-                logService.log(builder -> builder
-                    .eventType("UNAUTHORIZED_ORG_UPDATE_ATTEMPT")
-                    .description("Usuario sin permisos de propietario intentó actualizar organización")
-                    .user(currentUser)
-                    .organization(currentOrg)
-                    .ipAddress(request.getRemoteAddr())
-                );
-                redirectAttributes.addFlashAttribute("error", "Solo el propietario puede actualizar la organización");
-                return "redirect:/organizations/manage";
-            }
+
             organizationService.updateOrganization(organization.getId(), organization);
+
             logService.log(builder -> builder
                 .eventType("ORGANIZATION_UPDATED")
                 .description("Organización actualizada: " + organization.getName())
@@ -215,59 +236,76 @@ public class OrganizationController {
                 .organization(currentOrg)
                 .ipAddress(request.getRemoteAddr())
             );
+
             redirectAttributes.addFlashAttribute("success", "Organización actualizada exitosamente");
-            return "redirect:/organizations/manage";
+            return "redirect:/organizations/" + slug + "/dashboard";
         } catch (Exception e) {
             log.error("Error updating organization: {}", e.getMessage());
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/organizations/manage";
+            redirectAttributes.addFlashAttribute("error", "Error al actualizar la organización: " + e.getMessage());
+            return "redirect:/organizations/" + slug + "/dashboard";
         }
     }
-    @GetMapping("/dashboard")
-    public String showDashboard(Model model, RedirectAttributes redirectAttributes) {
-        log.debug("Showing organization dashboard");
+    @GetMapping("/{slug}/admin/edit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String showAdminEditForm(@PathVariable String slug, Model model, RedirectAttributes redirectAttributes) {
+        log.debug("Showing admin edit form for organization: {}", slug);
         try {
-            User currentUser = securityUtils.getCurrentUser()
-                    .orElseThrow(() -> new IllegalStateException("Usuario no autenticado"));
-            if (currentUser.getOrganization() == null) {
-                redirectAttributes.addFlashAttribute("error", "No pertenece a ninguna organización");
-                return "redirect:/";
-            }
-            Organization org = currentUser.getOrganization();
-            OrganizationStatsDTO stats = organizationService.getStatsByOrganization(org.getId());
+            Organization org = organizationService.getOrganizationBySlug(slug);
             model.addAttribute("organization", org);
-            model.addAttribute("stats", stats);
-            model.addAttribute("activeMenu", "organizations");
-            return "organizations/dashboard";
+            model.addAttribute("activeMenu", "organizations-list");
+            return "organizations/admin-edit";
         } catch (Exception e) {
-            log.error("Error loading dashboard", e);
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/";
+            log.error("Error showing admin edit form: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al cargar la organización: " + e.getMessage());
+            return "redirect:/organizations/all";
         }
     }
+
+    @PostMapping("/{slug}/admin/update")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String adminUpdateOrganization(@PathVariable String slug,
+                                         @Valid @ModelAttribute Organization organization,
+                                         BindingResult result,
+                                         HttpServletRequest request,
+                                         Model model,
+                                         RedirectAttributes redirectAttributes) {
+        log.debug("Admin updating organization: {}", slug);
+
+        if (result.hasErrors()) {
+            model.addAttribute("organization", organization);
+            model.addAttribute("activeMenu", "organizations-list");
+            return "organizations/admin-edit";
+        }
+
+        try {
+            User currentUser = securityUtils.getCurrentUserOrThrow();
+            Organization existingOrg = organizationService.getOrganizationBySlug(slug);
+
+            existingOrg.setActive(organization.getActive());
+            existingOrg.setPlan(organization.getPlan());
+
+            organizationService.updateOrganization(existingOrg.getId(), existingOrg);
+
+            logService.log(builder -> builder
+                .eventType("ADMIN_ORGANIZATION_UPDATED")
+                .description("System Admin actualizó organización: " + existingOrg.getName())
+                .user(currentUser)
+                .ipAddress(request.getRemoteAddr())
+                .details("Plan: " + existingOrg.getPlan() + ", Active: " + existingOrg.getActive())
+            );
+
+            redirectAttributes.addFlashAttribute("success", "Organización actualizada exitosamente");
+            return "redirect:/organizations/" + slug + "/admin/edit";
+        } catch (Exception e) {
+            log.error("Error admin updating organization: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al actualizar la organización: " + e.getMessage());
+            return "redirect:/organizations/all";
+        }
+    }
+
     @GetMapping("/members")
-    public String listMembers(RedirectAttributes redirectAttributes) {
+    public String listMembers() {
         log.debug("Redirecting to users list");
         return "redirect:/users";
-    }
-    @GetMapping("/settings")
-    public String showSettings(Model model, RedirectAttributes redirectAttributes) {
-        log.debug("Showing organization settings");
-        try {
-            User currentUser = securityUtils.getCurrentUser()
-                    .orElseThrow(() -> new IllegalStateException("Usuario no autenticado"));
-            if (currentUser.getOrganization() == null) {
-                redirectAttributes.addFlashAttribute("error", "No pertenece a ninguna organización");
-                return "redirect:/";
-            }
-            Organization org = currentUser.getOrganization();
-            model.addAttribute("organization", org);
-            model.addAttribute("activeMenu", "organizations");
-            return "organizations/settings";
-        } catch (Exception e) {
-            log.error("Error loading settings", e);
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/";
-        }
     }
 }

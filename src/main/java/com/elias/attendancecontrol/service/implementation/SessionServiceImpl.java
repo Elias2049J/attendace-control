@@ -213,20 +213,34 @@ public class SessionServiceImpl implements SessionService {
         return result;
     }
     private boolean shouldGenerateSession(LocalDate date, RecurrenceRule rule) {
-        return switch (rule.getRecurrenceType()) {
+        boolean result = switch (rule.getRecurrenceType()) {
+            case NONE -> date.equals(rule.getStartDate()); // Solo genera sesión en la fecha de inicio
             case DAILY -> true;
             case WEEKLY -> isInWeekDays(date, rule.getDaysOfWeek());
             case MONTHLY -> date.getDayOfMonth() == rule.getStartDate().getDayOfMonth();
-            default -> false;
         };
+
+        if (!result) {
+            log.trace("Session NOT generated for date {} with recurrence type {} (daysOfWeek: {})",
+                date, rule.getRecurrenceType(), rule.getDaysOfWeek());
+        }
+
+        return result;
     }
     private boolean isInWeekDays(LocalDate date, String daysOfWeek) {
         if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+            log.warn("Days of week is null or empty for WEEKLY recurrence on date: {}", date);
             return false;
         }
+
         DayOfWeek dayOfWeek = date.getDayOfWeek();
         String dayName = dayOfWeek.toString();
-        return daysOfWeek.toUpperCase().contains(dayName);
+        boolean isInDays = daysOfWeek.toUpperCase().contains(dayName);
+
+        log.trace("Checking if {} ({}) is in configured days: {} -> {}",
+            date, dayName, daysOfWeek, isInDays);
+
+        return isInDays;
     }
     private Session createSessionForDate(Activity activity, LocalDate date, RecurrenceRule rule) {
         Session session = new Session();
@@ -240,10 +254,10 @@ public class SessionServiceImpl implements SessionService {
     }
     private LocalDate getNextDate(LocalDate current, RecurrenceType type) {
         return switch (type) {
+            case NONE -> current.plusYears(10); // Salta muy adelante para terminar el loop
             case DAILY -> current.plusDays(1);
             case WEEKLY -> current.plusWeeks(1);
             case MONTHLY -> current.plusMonths(1);
-            default -> current.plusDays(1);
         };
     }
     private void validateSessionTolerance(Session session) {

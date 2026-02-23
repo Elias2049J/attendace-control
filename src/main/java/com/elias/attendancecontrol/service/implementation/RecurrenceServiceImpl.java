@@ -23,18 +23,6 @@ public class RecurrenceServiceImpl implements RecurrenceService {
 
     @Override
     @Transactional
-    public RecurrenceRule createRecurrenceRule(Long activityId, RecurrenceRule recurrenceRule) {
-        return configureRecurrence(activityId, recurrenceRule);
-    }
-
-    @Override
-    @Transactional
-    public RecurrenceRule updateRecurrenceRule(Long ruleId, RecurrenceRule recurrenceRule) {
-        return updateRecurrence(ruleId, recurrenceRule);
-    }
-
-    @Override
-    @Transactional
     public void generateSessionsForActivity(Long activityId) {
         log.debug("Generating sessions for activity: {}", activityId);
         Activity activity = activityRepository.findById(activityId)
@@ -145,8 +133,9 @@ public class RecurrenceServiceImpl implements RecurrenceService {
             log.debug("Validation failed: start time or end time is null");
             return false;
         }
-        if (rule.getEndTime().isBefore(rule.getStartTime())) {
-            log.debug("Validation failed: end time is before start time");
+        if (rule.getEndTime().isBefore(rule.getStartTime()) || rule.getEndTime().equals(rule.getStartTime())) {
+            log.debug("Validation failed: end time ({}) must be after start time ({})",
+                rule.getEndTime(), rule.getStartTime());
             return false;
         }
         if (rule.getToleranceMinutes() == null || rule.getToleranceMinutes() < 0) {

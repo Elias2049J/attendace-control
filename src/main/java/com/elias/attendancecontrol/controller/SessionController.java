@@ -4,6 +4,7 @@ import com.elias.attendancecontrol.model.entity.Session;
 import com.elias.attendancecontrol.service.SessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -15,13 +16,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class SessionController {
     private final SessionService sessionService;
     private final SecurityUtils securityUtils;
-    @GetMapping
-    public String listSessions(Model model) {
-        log.debug("Listing all sessions");
-        model.addAttribute("sessions", sessionService.listSessions());
-        return "sessions/list";
-    }
+
     @PostMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String activateSession(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Activating session: {}", id);
         try {
@@ -31,6 +28,7 @@ public class SessionController {
             }
             sessionService.activateSession(id);
             redirectAttributes.addFlashAttribute("success", "Sesión activada exitosamente");
+            return "redirect:/activities/" + session.getActivity().getId() + "/sessions";
         } catch (SecurityException e) {
             log.warn("User attempted to activate session from different organization: {}", id);
             redirectAttributes.addFlashAttribute("error", e.getMessage());
@@ -39,9 +37,11 @@ public class SessionController {
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", "No se puede activar: " + e.getMessage());
         }
-        return "redirect:/sessions";
+        return "redirect:/calendar";
     }
+
     @PostMapping("/{id}/close")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String closeSession(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Closing session: {}", id);
         try {
@@ -51,6 +51,7 @@ public class SessionController {
             }
             sessionService.closeSession(id);
             redirectAttributes.addFlashAttribute("success", "Sesión cerrada exitosamente");
+            return "redirect:/activities/" + session.getActivity().getId() + "/sessions";
         } catch (SecurityException e) {
             log.warn("User attempted to close session from different organization: {}", id);
             redirectAttributes.addFlashAttribute("error", e.getMessage());
@@ -59,9 +60,11 @@ public class SessionController {
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", "No se puede cerrar: " + e.getMessage());
         }
-        return "redirect:/sessions";
+        return "redirect:/calendar";
     }
+
     @PostMapping("/generate/{activityId}")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String generateSessions(@PathVariable Long activityId, RedirectAttributes redirectAttributes) {
         log.debug("Generating sessions for activity: {}", activityId);
         try {
@@ -72,6 +75,6 @@ public class SessionController {
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", "No se pueden generar sesiones: " + e.getMessage());
         }
-        return "redirect:/sessions";
+        return "redirect:/activities/" + activityId + "/sessions";
     }
 }

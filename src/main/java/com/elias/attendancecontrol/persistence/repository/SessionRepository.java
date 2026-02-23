@@ -29,4 +29,10 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate,
         @Param("orgId") Long organizationId);
+
+    @Query("SELECT s FROM Session s " +
+           "JOIN FETCH s.activity a " +
+           "JOIN FETCH a.organization " +
+           "WHERE s.id = :id")
+    Optional<Session> findByIdWithActivityAndOrganization(@Param("id") Long id);
 }

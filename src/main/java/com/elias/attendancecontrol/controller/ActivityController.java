@@ -5,6 +5,7 @@ import com.elias.attendancecontrol.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -29,6 +30,7 @@ public class ActivityController {
     private final SecurityUtils securityUtils;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String listActivities(Model model) {
         log.debug("Listing all activities");
         List<Activity> activities = activityService.listActivities();
@@ -36,14 +38,11 @@ public class ActivityController {
         model.addAttribute("activeMenu", "activities");
         return "activities/list";
     }
+
     @GetMapping("/new")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showCreateForm(Model model) {
         log.debug("Showing activity creation form");
-        if (!securityUtils.canManageActivities()) {
-            log.warn("User {} attempted to create activity without permission",
-                    securityUtils.getCurrentUser().map(User::getUsername).orElse("unknown"));
-            return "redirect:/activities?error=no_permission";
-        }
         model.addAttribute("activity", new Activity());
         model.addAttribute("users", userService.listUsers());
         model.addAttribute("recurrenceTypes", RecurrenceType.values());
@@ -51,7 +50,9 @@ public class ActivityController {
         model.addAttribute("activeMenu", "activities");
         return "activities/form";
     }
+
     @PostMapping
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String createActivity(@Valid @ModelAttribute Activity activity,
                                  @RequestParam(name = "responsibleId", required = false) Long responsibleId,
                                  @RequestParam(name = "recurrenceType") String recurrenceTypeStr,
@@ -65,9 +66,7 @@ public class ActivityController {
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
         log.debug("Creating new activity: {}", activity.getName());
-        if (!securityUtils.canManageActivities()) {
-            return "redirect:/activities?error=no_permission";
-        }
+
         if (responsibleId == null) {
             model.addAttribute("error", "Debe seleccionar un responsable para la actividad");
             model.addAttribute("users", userService.listUsers());
@@ -76,6 +75,7 @@ public class ActivityController {
             model.addAttribute("activeMenu", "activities");
             return "activities/form";
         }
+
         if (result.hasErrors()) {
             model.addAttribute("users", userService.listUsers());
             model.addAttribute("recurrenceTypes", RecurrenceType.values());
@@ -105,7 +105,9 @@ public class ActivityController {
             redirectAttributes.addFlashAttribute("success", "Actividad creada exitosamente");
             return "redirect:/activities";
         } catch (IllegalArgumentException | IllegalStateException e) {
+            log.error("Error creating activity: {}", e.getMessage());
             model.addAttribute("error", e.getMessage());
+            model.addAttribute("activity", activity);
             model.addAttribute("users", userService.listUsers());
             model.addAttribute("recurrenceTypes", RecurrenceType.values());
             model.addAttribute("daysOfWeek", DayOfWeek.values());
@@ -113,13 +115,11 @@ public class ActivityController {
             return "activities/form";
         }
     }
+
     @GetMapping("/{id}/edit")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Showing edit form for activity: {}", id);
-        if (!securityUtils.canManageActivities()) {
-            redirectAttributes.addFlashAttribute("error", "No tiene permisos para editar actividades");
-            return "redirect:/activities";
-        }
         try {
             Activity activity = activityService.getActivityById(id);
             if (activity.getOrganization() != null) {
@@ -141,7 +141,9 @@ public class ActivityController {
             return "redirect:/activities";
         }
     }
+
     @PostMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String updateActivity(@PathVariable Long id,
                                  @Valid @ModelAttribute Activity activity,
                                  @RequestParam(name = "responsibleId", required = false) Long responsibleId,
@@ -156,9 +158,7 @@ public class ActivityController {
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
         log.debug("Updating activity: {}", id);
-        if (!securityUtils.canManageActivities()) {
-            return "redirect:/activities?error=no_permission";
-        }
+
         if (result.hasErrors()) {
             model.addAttribute("users", userService.listUsers());
             model.addAttribute("recurrenceTypes", RecurrenceType.values());
@@ -166,6 +166,7 @@ public class ActivityController {
             model.addAttribute("isEdit", true);
             return "activities/form";
         }
+
         try {
             Activity existingActivity = activityService.getActivityById(id);
             if (existingActivity.getOrganization() != null) {
@@ -207,16 +208,20 @@ public class ActivityController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/activities";
         } catch (IllegalArgumentException e) {
+            log.error("Error updating activity: {}", e.getMessage());
             model.addAttribute("error", e.getMessage());
+            model.addAttribute("activity", activity);
             model.addAttribute("users", userService.listUsers());
             model.addAttribute("recurrenceTypes", RecurrenceType.values());
             model.addAttribute("daysOfWeek", DayOfWeek.values());
             model.addAttribute("isEdit", true);
+            model.addAttribute("activeMenu", "activities");
             return "activities/form";
         }
     }
 
     @PostMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String activateActivity(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Activating activity: {}", id);
         try {
@@ -236,6 +241,7 @@ public class ActivityController {
     }
 
     @PostMapping("/{id}/pause")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String pauseActivity(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Pausing activity: {}", id);
         try {
@@ -253,7 +259,9 @@ public class ActivityController {
         }
         return "redirect:/activities";
     }
+
     @PostMapping("/{id}/complete")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String completeActivity(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Completing activity: {}", id);
         try {
@@ -271,7 +279,9 @@ public class ActivityController {
         }
         return "redirect:/activities";
     }
+
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String cancelActivity(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Cancelling activity: {}", id);
         try {

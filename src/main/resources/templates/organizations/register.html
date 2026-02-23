@@ -18,7 +18,7 @@
                     <div class="card shadow">
                         <div class="card-header bg-primary text-white">
                             <h3 class="mb-0">
-                                <i class="bi bi-building-add"></i> Registrar Nueva Organización
+                                <i class="bi bi-building-add"></i> Registra tu Organización
                             </h3>
                             <p class="mb-0 mt-2">Complete el formulario para crear su organización y comenzar a usar el sistema</p>
                         </div>
@@ -78,6 +78,16 @@
                                                        placeholder="+1 234 567 8900">
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="address" class="form-label">Dirección</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                            <input type="text" class="form-control" id="address"
+                                                   th:field="*{organization.address}"
+                                                   placeholder="Calle Principal #123, Ciudad">
+                                        </div>
+                                        <div class="form-text">Dirección física de su organización (opcional)</div>
                                     </div>
                                     <div class="mb-3">
                                         <label for="plan" class="form-label">Plan de Suscripción *</label>

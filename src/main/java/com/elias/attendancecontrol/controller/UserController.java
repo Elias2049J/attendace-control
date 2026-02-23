@@ -3,11 +3,11 @@ import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.OrganizationRole;
 import com.elias.attendancecontrol.model.entity.SystemRole;
 import com.elias.attendancecontrol.model.entity.User;
-import com.elias.attendancecontrol.service.LogService;
 import com.elias.attendancecontrol.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,62 +21,51 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
     private final SecurityUtils securityUtils;
-    private final LogService logService;
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String listUsers(Model model) {
         log.debug("Listing all users");
-        if (!securityUtils.canManageUsers()) {
-            User currentUser = securityUtils.getCurrentUser().orElse(null);
-            log.warn("User {} attempted to access user list without permission",
-                    currentUser != null ? currentUser.getUsername() : "unknown");
-            logService.log(builder -> builder
-                    .eventType("UNAUTHORIZED_ACCESS_ATTEMPT")
-                    .description("Intento no autorizado de acceder a lista de usuarios")
-                    .user(currentUser)
-            );
-            return "redirect:/?error=no_permission";
-        }
         model.addAttribute("users", userService.listUsers());
         model.addAttribute("canManageUsers", securityUtils.canManageUsers());
-        model.addAttribute("isSystemAdmin", securityUtils.isSystemAdmin());
         return "users/list";
     }
+
     @GetMapping("/new")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showCreateForm(Model model) {
         log.debug("Showing user creation form");
-        if (!securityUtils.canManageUsers()) {
-            return "redirect:/users?error=no_permission";
-        }
         model.addAttribute("user", new User());
         prepareFormModel(model);
         return "users/form";
     }
+
     @PostMapping
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String createUser(@Valid @ModelAttribute User user,
                             BindingResult result,
                             Model model,
                             RedirectAttributes redirectAttributes) {
         log.debug("Creating new user: {}", user.getUsername());
-        if (!securityUtils.canManageUsers()) {
-            return "redirect:/users?error=no_permission";
-        }
+
         if (result.hasErrors()) {
             prepareFormModel(model);
             return "users/form";
         }
+
         try {
-            if (!securityUtils.isSystemAdmin()) {
-                User currentUser = securityUtils.getCurrentUserOrThrow();
-                user.setSystemRole(SystemRole.USER);
-                user.setOrganization(currentUser.getOrganization());
-                if (user.getOrganizationRole() == OrganizationRole.OWNER) {
-                    model.addAttribute("error", "No tiene permisos para crear propietarios");
-                    prepareFormModel(model);
-                    return "users/form";
-                }
-                if (securityUtils.isOrganizationAdmin() && user.getOrganizationRole() != OrganizationRole.MEMBER) {
-                    user.setOrganizationRole(OrganizationRole.MEMBER);
-                }
+            User currentUser = securityUtils.getCurrentUserOrThrow();
+            user.setSystemRole(SystemRole.USER);
+            user.setOrganization(currentUser.getOrganization());
+
+            if (user.getOrganizationRole() == OrganizationRole.OWNER) {
+                model.addAttribute("error", "No tiene permisos para crear propietarios");
+                prepareFormModel(model);
+                return "users/form";
+            }
+
+            if (securityUtils.isOrganizationAdmin() && user.getOrganizationRole() != OrganizationRole.MEMBER) {
+                user.setOrganizationRole(OrganizationRole.MEMBER);
             }
             userService.createUser(user);
             redirectAttributes.addFlashAttribute("success", "Usuario creado exitosamente");
@@ -87,7 +76,9 @@ public class UserController {
             return "users/form";
         }
     }
+
     @GetMapping("/{id}/edit")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Showing edit form for user: {}", id);
         try {
@@ -107,7 +98,9 @@ public class UserController {
             return "redirect:/users";
         }
     }
+
     @PostMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String updateUser(@PathVariable Long id,
                             @Valid @ModelAttribute User user,
                             BindingResult result,
@@ -116,23 +109,26 @@ public class UserController {
         log.debug("Updating user: {}", id);
         try {
             User targetUser = userService.getUserById(id);
+
             if (!securityUtils.canEditUser(targetUser)) {
                 redirectAttributes.addFlashAttribute("error", "No tiene permisos para editar este usuario");
                 return "redirect:/users";
             }
+
             if (result.hasErrors()) {
                 model.addAttribute("isEdit", true);
                 prepareFormModel(model);
                 return "users/form";
             }
-            if (!securityUtils.isSystemAdmin()) {
-                user.setSystemRole(targetUser.getSystemRole());
-                user.setOrganization(targetUser.getOrganization());
-                if (user.getOrganizationRole() == OrganizationRole.OWNER &&
-                        targetUser.getOrganizationRole() != OrganizationRole.OWNER) {
-                    user.setOrganizationRole(targetUser.getOrganizationRole());
-                }
+
+            user.setSystemRole(targetUser.getSystemRole());
+            user.setOrganization(targetUser.getOrganization());
+
+            if (user.getOrganizationRole() == OrganizationRole.OWNER &&
+                    targetUser.getOrganizationRole() != OrganizationRole.OWNER) {
+                user.setOrganizationRole(targetUser.getOrganizationRole());
             }
+
             userService.updateUser(id, user);
             redirectAttributes.addFlashAttribute("success", "Usuario actualizado exitosamente");
             return "redirect:/users";
@@ -143,21 +139,16 @@ public class UserController {
             return "users/form";
         }
     }
+
     @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String deactivateUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Deactivating user: {}", id);
         try {
             User targetUser = userService.getUserById(id);
             if (!securityUtils.canEditUser(targetUser)) {
-                User currentUser = securityUtils.getCurrentUser().orElse(null);
                 log.warn("User {} attempted to deactivate user {} without permission",
-                        currentUser != null ? currentUser.getUsername() : "unknown", id);
-                logService.log(builder -> builder
-                        .eventType("UNAUTHORIZED_ACCESS_ATTEMPT")
-                        .description("Intento no autorizado de desactivar usuario: " + targetUser.getUsername())
-                        .user(currentUser)
-                        .details("Target user ID: " + id)
-                );
+                        securityUtils.getCurrentUser().map(User::getUsername).orElse("unknown"), id);
                 redirectAttributes.addFlashAttribute("error", "No tiene permisos para desactivar este usuario");
                 return "redirect:/users";
             }
@@ -168,6 +159,7 @@ public class UserController {
         }
         return "redirect:/users";
     }
+
     @GetMapping("/search/results")
     public String searchUsersFragment(
             @RequestParam(required = false, defaultValue = "") String query,
