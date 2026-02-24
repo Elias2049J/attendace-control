@@ -1,10 +1,7 @@
 package com.elias.attendancecontrol.service.implementation;
 
 import com.elias.attendancecontrol.config.SecurityUtils;
-import com.elias.attendancecontrol.model.entity.Activity;
-import com.elias.attendancecontrol.model.entity.ActivityStatus;
-import com.elias.attendancecontrol.model.entity.Organization;
-import com.elias.attendancecontrol.model.entity.SessionStatus;
+import com.elias.attendancecontrol.model.entity.*;
 import com.elias.attendancecontrol.persistence.repository.ActivityRepository;
 import com.elias.attendancecontrol.persistence.repository.OrganizationRepository;
 import com.elias.attendancecontrol.persistence.repository.SessionRepository;
@@ -18,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -106,7 +105,7 @@ public class ActivityServiceImpl implements ActivityService {
             throw new IllegalStateException("La actividad no tiene regla de recurrencia configurada");
         }
 
-        if (activity.getStatus() == ActivityStatus.DRAFT) {
+        if (activity.getStatus().isDraft()) {
             activity.setStatus(ActivityStatus.SCHEDULED);
             activityRepository.save(activity);
 
@@ -117,7 +116,7 @@ public class ActivityServiceImpl implements ActivityService {
                         .eventType("ACTIVITY_ACTIVATED")
                         .description("Actividad activada y sesiones generadas: " + activity.getName())
                         .user(currentUser)
-                        .details("ID: " + id + ", Estado: " + activity.getStatus())
+                        .details("ID: " + id + ", Estado: " + activity.getStatus().getDisplayName())
                 )
             );
 
@@ -129,11 +128,24 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Activity> listActivities() {
+    public List<Activity> listActivitiesSorted() {
         return securityUtils.getCurrentOrganizationId()
                 .map(activityRepository::findByOrganizationId)
-                .orElseGet(activityRepository::findAll);
+                .orElseGet(() -> {
+                    List<Activity> activities = activityRepository.findAll();
+                    activities.sort((a1, a2) -> {
+                        LocalDate date1 = a1.getRecurrenceRule() != null ? a1.getRecurrenceRule().getStartDate() : LocalDate.MAX;
+                        LocalDate date2 = a2.getRecurrenceRule() != null ? a2.getRecurrenceRule().getStartDate() : LocalDate.MAX;
+                        int dateCompare = date1.compareTo(date2);
+                        if (dateCompare != 0) {
+                            return dateCompare;
+                        }
+                        return Long.compare(a2.getId(), a1.getId());
+                    });
+                    return activities;
+                });
     }
+
     @Override
     @Transactional(readOnly = true)
     public Activity getActivityById(Long id) {
@@ -145,9 +157,9 @@ public class ActivityServiceImpl implements ActivityService {
     public List<Activity> findActiveActivities() {
         return securityUtils.getCurrentOrganizationId()
                 .map(orgId -> activityRepository.findByOrganizationIdAndStatus(orgId, ActivityStatus.SCHEDULED))
-                .orElseGet(() -> activityRepository.findByStatus(ActivityStatus.SCHEDULED));
+                .orElseGet(() -> activityRepository.findByStatusOrderByIdDesc(ActivityStatus.SCHEDULED));
     }
-    @Transactional(readOnly = true)
+
     @Override
     public List<Activity> findByResponsible(Long userId) {
         return activityRepository.findByResponsibleId(userId);
@@ -158,7 +170,7 @@ public class ActivityServiceImpl implements ActivityService {
     public void pauseActivity(Long activityId) {
         log.debug("Pausing activity: {}", activityId);
         Activity activity = getActivityById(activityId);
-        if (activity.getStatus() != ActivityStatus.SCHEDULED) {
+        if (!activity.getStatus().isScheduled()) {
             throw new IllegalStateException("Solo se pueden pausar actividades programadas");
         }
         activity.setStatus(ActivityStatus.PAUSED);
@@ -230,7 +242,7 @@ public class ActivityServiceImpl implements ActivityService {
     public boolean canPublish(Long activityId) {
         try {
             Activity activity = getActivityById(activityId);
-            return activity.getStatus() == ActivityStatus.DRAFT
+            return activity.getStatus().isDraft()
                     && activity.getRecurrenceRule() != null;
         } catch (IllegalArgumentException e) {
             return false;
@@ -299,7 +311,7 @@ public class ActivityServiceImpl implements ActivityService {
         } else if (role.contains("RESPONSIBLE")) {
             activities = findByResponsible(userId);
         } else {
-            activities = listActivities();
+            activities = listActivitiesSorted();
         }
         if (query != null && !query.isBlank()) {
             String lowerQuery = query.toLowerCase();
@@ -309,5 +321,13 @@ public class ActivityServiceImpl implements ActivityService {
                     .toList();
         }
         return activities;
+    }
+
+    @Override
+    public boolean isResponsible(Long activityId, Long userId) {
+        long responsibleId = activityRepository.findById(activityId)
+                .orElseThrow()
+                .getResponsible().getId();
+        return responsibleId == userId;
     }
 }

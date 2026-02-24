@@ -39,7 +39,7 @@
                     <div class="card-body text-center">
                         <i class="bi bi-award fs-1 text-mirae-green mb-3"></i>
                         <h6 class="text-muted mb-2">Plan Actual</h6>
-                        <h3 class="mb-0" th:text="${organization.plan}">FREE</h3>
+                        <h3 class="mb-0" th:text="${organization.plan.displayName}">FREE</h3>
                         <span class="mt-2" th:if="${organization.active}">Activo</span>
                         <span class="mt-2" th:unless="${organization.active}">Inactivo</span>
                     </div>
@@ -112,7 +112,7 @@
                                 <strong><i class="bi bi-link-45deg"></i> Identificador (slug):</strong>
                             </div>
                             <div class="col-md-8">
-                                th:text="${organization.slug}">mi-organizacion
+                                <span th:text="${organization.slug}">mi-organizacion</span>
                             </div>
                         </div>
                         <div class="row mb-3" th:if="${organization.description}">
@@ -217,7 +217,7 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <a th:href="@{/users}" class="btn btn-outline-primary">
+                            <a th:href="@{/organizations/{slug}/members(slug=${organization.slug})}" class="btn btn-outline-primary">
                                 <i class="bi bi-people"></i> Gestionar Miembros
                             </a>
                             <a th:href="@{/activities}" class="btn btn-outline-primary">
@@ -227,7 +227,7 @@
                                 <i class="bi bi-calendar3"></i> Ver Calendario
                             </a>
                             <a th:href="@{/reports}" class="btn btn-outline-primary"
-                               th:if="${isOrgOwnerOrAdmin == true or isSysAdmin == true}">
+                               th:if="${isOrgOwnerOrAdmin == true}">
                                 <i class="bi bi-graph-up"></i> Ver Reportes
                             </a>
                         </div>
@@ -239,7 +239,7 @@
                     </div>
                     <div class="card-body">
                         <div class="text-center mb-3">
-                            <span class="fs-5" th:text="${organization.plan}">FREE</span>
+                            <span class="fs-5" th:text="${organization.plan.displayName}">FREE</span>
                         </div>
                         <div class="mb-3">
                             <h6>Beneficios incluidos:</h6>

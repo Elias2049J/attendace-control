@@ -23,8 +23,9 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showReportsMenu(Model model) {
         log.debug("Showing reports menu");
-        model.addAttribute("activities", activityService.listActivities());
+        model.addAttribute("activities", activityService.listActivitiesSorted());
         model.addAttribute("users", userService.listUsers());
+        model.addAttribute("activeMenu", "reports");
         return "reports/menu";
     }
 

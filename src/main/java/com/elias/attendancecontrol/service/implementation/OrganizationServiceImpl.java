@@ -1,5 +1,6 @@
 package com.elias.attendancecontrol.service.implementation;
 import com.elias.attendancecontrol.config.OrganizationPlanProperties;
+import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.dto.OrganizationStatsDTO;
 import com.elias.attendancecontrol.model.entity.*;
 import com.elias.attendancecontrol.persistence.repository.ActivityRepository;
@@ -13,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 @Slf4j
 @Service
@@ -25,6 +28,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final SessionRepository sessionRepository;
     private final LogService logService;
     private final OrganizationPlanProperties planProperties;
+    private final SecurityUtils securityUtils;
 
     @Override
     @Transactional
@@ -219,24 +223,24 @@ public class OrganizationServiceImpl implements OrganizationService {
                 planProperties.getPremium().getMaxActivities()
         );
     }
+
     @Override
     @Transactional(readOnly = true)
     public OrganizationStatsDTO getStatsByOrganization(Long organizationId) {
-        log.debug("Getting stats for organization: {}", organizationId);
         Organization organization = getOrganizationById(organizationId);
         long totalMembers = userRepository.countByOrganization(organization);
         long adminCount = userRepository.countByOrganizationAndOrganizationRole(organization, OrganizationRole.ADMIN);
         long memberCount = userRepository.countByOrganizationAndOrganizationRole(organization, OrganizationRole.MEMBER);
         List<Activity> activities = activityRepository.findByOrganization(organization);
         long activeActivities = activities.stream()
-                .filter(a -> a.getStatus() == ActivityStatus.SCHEDULED)
+                .filter(a -> a.getStatus().isScheduled())
                 .count();
         long completedActivities = activities.stream()
-                .filter(a -> a.getStatus() == ActivityStatus.COMPLETED)
+                .filter(a -> a.getStatus().isCompleted())
                 .count();
         long scheduledSessions = activities.stream()
-                .flatMap(a -> sessionRepository.findByActivity(a).stream())
-                .filter(s -> s.getStatus() == SessionStatus.PLANNED)
+                .flatMap(a -> sessionRepository.findByActivityOrderBySessionDateAsc(a).stream())
+                .filter(s -> s.getStatus().isPlanned())
                 .count();
         return OrganizationStatsDTO.builder()
                 .totalMembers(totalMembers)
@@ -247,5 +251,31 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .totalActivities(activities.size())
                 .scheduledSessions(scheduledSessions)
                 .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> transferOwnership(String orgSlug, Long userToTransferId) {
+        User currentOwner = securityUtils.getCurrentUserOrThrow();
+        User userToTransfer = userRepository.findById(userToTransferId).orElseThrow();
+        Organization currentOrg = organizationRepository.findBySlug(orgSlug).orElseThrow();
+        OrganizationRole previusRoleFromUserToTransfer = userToTransfer.getOrganizationRole();
+
+        userToTransfer.setOrganizationRole(OrganizationRole.OWNER);
+        userRepository.save(userToTransfer);
+        currentOrg.setOwner(userToTransfer);
+        organizationRepository.save(currentOrg);
+        currentOwner.setOrganizationRole(OrganizationRole.ADMIN);
+        userRepository.save(currentOwner);
+
+        Map<String, Object> transferDetails = new HashMap<>();
+        transferDetails.put("organization", currentOrg);
+        transferDetails.put("newOwner", userToTransfer);
+        transferDetails.put("oldOwner", currentOwner);
+        transferDetails.put("timestamp", LocalDateTime.now());
+        transferDetails.put("performedBy", currentOwner);
+        transferDetails.put("previousRole", previusRoleFromUserToTransfer);
+
+        return transferDetails;
     }
 }

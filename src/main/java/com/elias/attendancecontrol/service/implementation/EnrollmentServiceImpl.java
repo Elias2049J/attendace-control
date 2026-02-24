@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 @Slf4j
 @Service
@@ -22,6 +23,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final AttendanceRepository attendanceRepository;
     private final LogService logService;
     private final SecurityUtils securityUtils;
+
     @Override
     @Transactional
     public Enrollment enrollUser(Long activityId, Long userId) {
@@ -30,7 +32,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-        if (activity.getStatus() != ActivityStatus.SCHEDULED) {
+        if (!activity.getStatus().isScheduled()) {
             throw new IllegalStateException("No se puede inscribir en una actividad inactiva");
         }
         if (!user.getActive()) {
@@ -62,7 +64,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         log.debug("Enrolling {} users in activity {}", userIds.size(), activityId);
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
-        if (activity.getStatus() != ActivityStatus.SCHEDULED) {
+        if (!activity.getStatus().isScheduled()) {
             throw new IllegalStateException("No se puede inscribir en una actividad inactiva");
         }
         User enrolledBy = securityUtils.getCurrentUser().orElse(null);
@@ -105,6 +107,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         );
         log.info("Bulk enrollment completed: {} success, {} skipped", successCount, skipCount);
     }
+
     @Override
     @Transactional
     public void removeParticipant(Long activityId, Long userId) {
@@ -126,6 +129,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         );
         log.info("User {} removed from activity {} successfully", userId, activityId);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<User> getEnrolledParticipants(Long activityId) {
@@ -134,6 +138,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
         return enrollmentRepository.findUsersByActivityAndStatus(activity, EnrollmentStatus.ENROLLED);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<Activity> getActivitiesByUser(Long userId) {
@@ -142,6 +147,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         return enrollmentRepository.findActivitiesByUserAndStatus(user, EnrollmentStatus.ENROLLED);
     }
+
     @Override
     @Transactional(readOnly = true)
     public boolean isUserEnrolled(Long activityId, Long userId) {
@@ -151,6 +157,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         return enrollmentRepository.existsByActivityAndUserAndStatus(activity, user, EnrollmentStatus.ENROLLED);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<User> getExpectedParticipants(Long sessionId) {
@@ -160,6 +167,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Activity activity = session.getActivity();
         return enrollmentRepository.findUsersByActivityAndStatus(activity, EnrollmentStatus.ENROLLED);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<User> getAbsentUsers(Long sessionId) {
@@ -177,17 +185,20 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .filter(user -> !attendedUsers.contains(user))
                 .toList();
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<Enrollment> listEnrollments() {
         return enrollmentRepository.findAll();
     }
+
     @Override
     @Transactional(readOnly = true)
     public Enrollment getEnrollmentById(Long id) {
         return enrollmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Inscripción no encontrada"));
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<Enrollment> getEnrollmentsByActivity(Long activityId) {
@@ -195,6 +206,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
         return enrollmentRepository.findByActivity(activity);
     }
+
     @Override
     @Transactional(readOnly = true)
     public long getEnrolledCount(Long activityId) {
@@ -202,6 +214,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
         return enrollmentRepository.countByActivityAndStatus(activity, EnrollmentStatus.ENROLLED);
     }
+
     @Override
     @Transactional
     public void completeAllEnrollments(Long activityId) {
@@ -214,5 +227,25 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             enrollmentRepository.save(enrollment);
         }
         log.info("Completed {} enrollments for activity: {}", activeEnrollments.size(), activityId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Enrollment> getEnrollmentsWithoutAttendance(Long activityId, List<Attendance> attendances) {
+        log.debug("Getting enrollments without attendance for activity: {}", activityId);
+
+        List<Enrollment> enrollments = getEnrollmentsByActivity(activityId);
+
+        Set<Long> attendedUserIds = attendances.stream()
+                .map(att -> att.getUser().getId())
+                .collect(Collectors.toSet());
+
+
+        List<Enrollment> enrollmentsWithoutAttendance = enrollments.stream()
+                .filter(enrollment -> !attendedUserIds.contains(enrollment.getUser().getId()))
+                .collect(Collectors.toList());
+
+        log.debug("Found {} enrollments without attendance", enrollmentsWithoutAttendance.size());
+        return enrollmentsWithoutAttendance;
     }
 }

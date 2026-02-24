@@ -18,7 +18,9 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Controller
@@ -303,9 +305,59 @@ public class OrganizationController {
         }
     }
 
-    @GetMapping("/members")
-    public String listMembers() {
-        log.debug("Redirecting to users list");
-        return "redirect:/users";
+    @PostMapping("/{slug}/settings/transfer-ownership")
+    @PreAuthorize("hasRole('ORG_OWNER')")
+    public String transferOwnership(@PathVariable String slug,
+                                   @RequestParam Long newOwnerId,
+                                   HttpServletRequest request,
+                                   RedirectAttributes redirectAttributes) {
+        log.debug("Owner transferring organization ownership: {}", slug);
+        try {
+            User currentOwner = securityUtils.getCurrentUserOrThrow();
+            Organization currentOrg = currentOwner.getOrganization();
+
+            if (!currentOrg.getSlug().equals(slug)) {
+                redirectAttributes.addFlashAttribute("error", "No tiene acceso a esta organización");
+                return "redirect:/organizations/" + currentOrg.getSlug() + "/dashboard";
+            }
+
+            Map<String, Object> result = organizationService.transferOwnership(slug, newOwnerId);
+            User newOwner = (User) result.get("newOwner");
+
+            logService.log(builder -> builder
+                    .eventType("ORGANIZATION_OWNERSHIP_TRANSFERRED")
+                    .description("Se transfirió la representación de la organización al usuario: " + newOwner.getFullname().toUpperCase())
+                    .user(currentOwner)
+                    .organization(currentOrg)
+                    .ipAddress(request.getRemoteAddr())
+                    .details("Nuevo representante: " + newOwner.getEmail() + ", Antiguo representante ahora es ADMIN")
+            );
+
+            redirectAttributes.addFlashAttribute("success",
+                "Transferencia completada. Por seguridad, debe iniciar sesión nuevamente.");
+            return "redirect:/auth/login";
+        } catch (Exception e) {
+            log.error("Error transferring ownership: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al transferir propiedad: " + e.getMessage());
+            return "redirect:/organizations/" + slug + "/settings";
+        }
+    }
+
+    @PostMapping("/{slug}/members/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    public String deactivateUser(@PathVariable String slug, @PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.debug("Deactivating user: {} in org {}", id, slug);
+        try {
+            User targetUser = userService.getUserById(id);
+            if (!securityUtils.canEditUser(targetUser)) {
+                log.warn("User {} attempted to deactivate user {} without permission", securityUtils.getCurrentUser().map(User::getUsername).orElse("unknown"), id);
+                redirectAttributes.addFlashAttribute("error", "No tiene permisos para desactivar este usuario");
+                return "redirect:/organizations/" + slug + "/members";
+            }
+            userService.deactivateUser(id);
+        } catch (IllegalArgumentException e) {
+            log.warn("Error deactivating user: {}", e.getMessage());
+        }
+        return "redirect:/organizations/" + slug + "/members";
     }
 }

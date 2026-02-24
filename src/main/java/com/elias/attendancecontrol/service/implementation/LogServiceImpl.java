@@ -23,6 +23,7 @@ public class LogServiceImpl implements LogService {
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
+
     @Override
     @Transactional
     public AuditLog log(Consumer<AuditLog.AuditLogBuilder> builderConsumer) {

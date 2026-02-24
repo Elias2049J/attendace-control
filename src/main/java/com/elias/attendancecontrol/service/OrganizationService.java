@@ -3,6 +3,7 @@ import com.elias.attendancecontrol.model.dto.OrganizationStatsDTO;
 import com.elias.attendancecontrol.model.entity.Organization;
 import com.elias.attendancecontrol.model.entity.User;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 public interface OrganizationService {
     Organization registerOrganization(Organization organization, User owner);
@@ -21,4 +22,5 @@ public interface OrganizationService {
     void removeUserFromOrganization(Long userId);
     Organization changePlan(Long organizationId, com.elias.attendancecontrol.model.entity.OrganizationPlan newPlan);
     OrganizationStatsDTO getStatsByOrganization(Long organizationId);
+    Map<String, Object> transferOwnership(String orgSlug, Long userToTransferId);
 }

@@ -6,11 +6,11 @@
     <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content">
         <div class="container-fluid py-4">
-                    <nav aria-label="breadcrumb">
+                    <nav aria-label="breadcrumb" class="d-none d-md-block">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
-                            <li class="breadcrumb-item"><a th:href="@{/organizations}" class="text-decoration-none">Organizaciones</a></li>
-                            <li class="breadcrumb-item active" aria-current="page" th:text="${organization.name}">Organización</li>
+                            <li class="breadcrumb-item"><a th:href="@{/organizations/{slug}/dashboard(slug=${organization.slug})}" class="text-decoration-none">Mi Organización</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Gestión de Miembros</li>
                         </ol>
                     </nav>
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -20,14 +20,14 @@
                                 Miembros de <span th:text="${organization.name}">Organización</span>
                             </h1>
                             <p class="text-muted mb-0">
-                                <span class="badge bg-primary" th:text="${organization.plan}">PLAN</span>
+                                <span class="badge bg-primary" th:text="${organization.plan.displayName}">PLAN</span>
                                 <span class="ms-2 text-muted small">
                                     <i class="bi bi-person-badge"></i>
                                     <span th:text="${#lists.size(members)} + ' de ' + ${organization.maxUsers} + ' miembros'">0 de 0 miembros</span>
                                 </span>
                             </p>
                         </div>
-                        <a th:href="@{/organizations}" class="btn btn-outline-secondary">
+                        <a th:href="@{/organizations/{slug}/dashboard(slug=${organization.slug})}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Volver
                         </a>
                     </div>
@@ -45,7 +45,6 @@
                                             <th>Usuario</th>
                                             <th>Nombre Completo</th>
                                             <th>Email</th>
-                                            <th>Rol Sistema</th>
                                             <th>Rol Organización</th>
                                             <th>Estado</th>
                                             <th>Fecha Registro</th>
@@ -61,27 +60,42 @@
                                                 <a th:href="'mailto:' + ${member.email}" th:text="${member.email}">email@example.com</a>
                                             </td>
                                             <td>
-                                                <span class="badge bg-info" th:text="${member.systemRole}">ROLE</span>
-                                            </td>
-                                            <td>
                                                 <span th:if="${member.organizationRole}"
                                                       class="badge"
-                                                      th:classappend="${member.organizationRole.name() == 'OWNER' ? 'bg-danger' : (member.organizationRole.name() == 'ADMIN' ? 'bg-warning' : 'bg-secondary')}"
-                                                      th:text="${member.organizationRole}">
+                                                      th:classappend="${member.organizationRole.isOwner() ? 'bg-danger' : (member.organizationRole.isAdmin() ? 'bg-warning': '')}"
+                                                      th:text="${member.organizationRole.displayName}">
                                                     ORG_ROLE
                                                 </span>
                                                 <span th:unless="${member.organizationRole}" class="text-muted">-</span>
                                             </td>
                                             <td>
-                                                <span th:if="${member.active}" class="badge bg-success">Activo</span>
-                                                <span th:unless="${member.active}" class="badge bg-secondary">Inactivo</span>
+                                                <form th:action="@{'/organizations/' + ${organization.slug} + '/members/' + ${member.id} + '/deactivate'}" method="post" th:id="'deactivateForm-' + ${member.id}">
+                                                    <div th:if="${member.active}">
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-success dropdown-toggle" type="button" id="estadoDropdown-[[${member.id}]]" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                Activo
+                                                            </button>
+                                                            <ul class="dropdown-menu" aria-labelledby="estadoDropdown-[[${member.id}]]" style="min-width: 120px;">
+                                                                <li>
+                                                                    <button class="dropdown-item active" type="button" disabled>Activo</button>
+                                                                </li>
+                                                                <li>
+                                                                    <button class="dropdown-item text-danger" type="button" th:onclick="|confirmAndDeactivate('deactivateForm-' + ${member.id})|">Deshabilitado</button>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div th:unless="${member.active}">
+                                                        <button class="btn btn-sm btn-outline-secondary" type="button" disabled>Deshabilitado</button>
+                                                    </div>
+                                                </form>
                                             </td>
                                             <td>
-                                                <span th:if="${member.createdAt}"
-                                                      th:text="${#temporals.format(member.createdAt, 'dd/MM/yyyy')}">
+                                                <span th:if="${member.createdDate}"
+                                                      th:text="${#temporals.format(member.createdDate, 'dd/MM/yyyy')}">
                                                     01/01/2024
                                                 </span>
-                                                <span th:unless="${member.createdAt}" class="text-muted">-</span>
+                                                <span th:unless="${member.createdDate}" class="text-muted">-</span>
                                             </td>
                                         </tr>
                                         <tr th:if="${#lists.isEmpty(members)}">
@@ -99,5 +113,12 @@
             </main>
     <div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
+    <script>
+function confirmAndDeactivate(formId) {
+    if (confirm('Deshabilitar usuario?')) {
+        document.getElementById(formId).submit();
+    }
+}
+</script>
 </body>
 </html>

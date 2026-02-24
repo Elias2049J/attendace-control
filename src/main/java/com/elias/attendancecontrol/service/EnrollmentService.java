@@ -1,5 +1,6 @@
 package com.elias.attendancecontrol.service;
 import com.elias.attendancecontrol.model.entity.Activity;
+import com.elias.attendancecontrol.model.entity.Attendance;
 import com.elias.attendancecontrol.model.entity.Enrollment;
 import com.elias.attendancecontrol.model.entity.User;
 import java.util.List;
@@ -17,4 +18,5 @@ public interface EnrollmentService {
     List<Enrollment> getEnrollmentsByActivity(Long activityId);
     long getEnrolledCount(Long activityId);
     void completeAllEnrollments(Long activityId);
+    List<Enrollment> getEnrollmentsWithoutAttendance(Long activityId, List<Attendance> attendances);
 }

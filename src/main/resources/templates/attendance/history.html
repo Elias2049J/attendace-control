@@ -82,17 +82,17 @@
                                           th:text="${attendance.registrationType}">QR</span>
                                 </td>
                                 <td>
-                                    <span th:if="${attendance.status.name() == 'PRESENT'}"
+                                    <span th:if="${attendance.status.isPresent()}"
                                           class="badge bg-success">
-                                        <i class="bi bi-check-circle"></i> Presente
+                                        <i class="bi bi-check-circle"></i> <span th:text="${attendance.status.displayName}">Presente</span>
                                     </span>
-                                    <span th:if="${attendance.status.name() == 'LATE'}"
+                                    <span th:if="${attendance.status.isLate()}"
                                           class="badge bg-warning">
-                                        <i class="bi bi-clock"></i> Tarde
+                                        <i class="bi bi-clock"></i> <span th:text="${attendance.status.displayName}">Tarde</span>
                                     </span>
-                                    <span th:if="${attendance.status.name() == 'ABSENT'}"
+                                    <span th:if="${attendance.status.isAbsent()}"
                                           class="badge bg-danger">
-                                        <i class="bi bi-x-circle"></i> Ausente
+                                        <i class="bi bi-x-circle"></i> <span th:text="${attendance.status.displayName}">Ausente</span>
                                     </span>
                                 </td>
                             </tr>

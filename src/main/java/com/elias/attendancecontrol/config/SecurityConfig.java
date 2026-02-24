@@ -49,9 +49,6 @@ public class SecurityConfig {
                         "/favicon.ico",
                         "/error"
                 ).permitAll()
-                .requestMatchers("/organizations/{slug}/members").hasRole(SYS_ROLE_ADMIN)
-                .requestMatchers("/organizations/manage", "/organizations/edit", "/organizations/settings")
-                    .hasAnyRole(ORG_ROLE_OWNER, ORG_ROLE_ADMIN)
                 .requestMatchers("/org/{orgSlug}/attendance/verify").authenticated()
                 .requestMatchers("/home", "/dashboard").authenticated()
                 .anyRequest().authenticated()

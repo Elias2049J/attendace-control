@@ -24,7 +24,7 @@
                                 <select class="form-select" id="originalDate" name="originalDate" required>
                                     <option value="">Seleccione una sesión...</option>
                                     <option th:each="sessionEntity : ${sessions}"
-                                            th:if="${sessionEntity.status.name() == 'PLANNED'}"
+                                            th:if="${sessionEntity.status.isPlanned()}"
                                             th:value="${sessionEntity.sessionDate}"
                                             th:text="${#temporals.format(sessionEntity.sessionDate, 'dd/MM/yyyy') + ' - ' + #temporals.format(sessionEntity.startTime, 'HH:mm')}">
                                     </option>

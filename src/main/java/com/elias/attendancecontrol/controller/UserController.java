@@ -23,7 +23,7 @@ public class UserController {
     private final SecurityUtils securityUtils;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public String listUsers(Model model) {
         log.debug("Listing all users");
         model.addAttribute("users", userService.listUsers());
@@ -32,7 +32,7 @@ public class UserController {
     }
 
     @GetMapping("/new")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ADMIN')")
     public String showCreateForm(Model model) {
         log.debug("Showing user creation form");
         model.addAttribute("user", new User());
@@ -41,7 +41,7 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ADMIN')")
     public String createUser(@Valid @ModelAttribute User user,
                             BindingResult result,
                             Model model,
@@ -78,7 +78,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}/edit")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ADMIN')")
     public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Showing edit form for user: {}", id);
         try {
@@ -100,7 +100,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ADMIN')")
     public String updateUser(@PathVariable Long id,
                             @Valid @ModelAttribute User user,
                             BindingResult result,
@@ -138,26 +138,6 @@ public class UserController {
             prepareFormModel(model);
             return "users/form";
         }
-    }
-
-    @PostMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
-    public String deactivateUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        log.debug("Deactivating user: {}", id);
-        try {
-            User targetUser = userService.getUserById(id);
-            if (!securityUtils.canEditUser(targetUser)) {
-                log.warn("User {} attempted to deactivate user {} without permission",
-                        securityUtils.getCurrentUser().map(User::getUsername).orElse("unknown"), id);
-                redirectAttributes.addFlashAttribute("error", "No tiene permisos para desactivar este usuario");
-                return "redirect:/users";
-            }
-            userService.deactivateUser(id);
-            redirectAttributes.addFlashAttribute("success", "Usuario desactivado exitosamente");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-        }
-        return "redirect:/users";
     }
 
     @GetMapping("/search/results")

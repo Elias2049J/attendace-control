@@ -39,14 +39,20 @@ public class HomeController {
         model.addAttribute("canManageActivities", securityUtils.canManageActivities());
         try {
             model.addAttribute("totalUsers", userService.listUsers().size());
-            List<Activity> activities;
-            if (securityUtils.hasRole("ORG_MEMBER")) {
-                activities = enrollmentService.getActivitiesByUser(user.getId());
+            List<Activity> activities = List.of();
+            int activitiesCount = 0;
+            List<Activity> enrolledActivities = enrollmentService.getActivitiesByUser(user.getId());
+            List<Activity> responsibleActivities = activityService.findByResponsible(user.getId());
+            if (securityUtils.isOrganizationOwnerOrAdmin()) {
+                activities = activityService.listActivitiesSorted();
+                activitiesCount = activities.size();
             } else {
-                activities = activityService.listActivities();
+                activitiesCount = enrolledActivities.size() + responsibleActivities.size();
             }
             model.addAttribute("activities", activities);
-            model.addAttribute("totalActivities", activities.size());
+            model.addAttribute("responsibleActivities", responsibleActivities);
+            model.addAttribute("enrolledActivities", enrolledActivities);
+            model.addAttribute("totalActivities", activitiesCount);
             model.addAttribute("totalSessions", sessionService.listSessions().size());
         } catch (Exception e) {
             log.warn("Error loading dashboard statistics", e);

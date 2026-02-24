@@ -18,11 +18,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private final AuthenticationService authenticationService;
     private final LogService logService;
     private final TokenService tokenService;
     private final UserService userService;
     private final SecurityUtils securityUtils;
+
     @GetMapping("/login")
     public String showLoginForm(
             @RequestParam(value = "error", required = false) String error,

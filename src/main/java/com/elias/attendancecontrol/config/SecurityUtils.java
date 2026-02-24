@@ -34,6 +34,10 @@ public class SecurityUtils {
                 .map(User::getOrganization)
                 .map(Organization::getId);
     }
+
+    public boolean isOrganizationMember() {
+        return getCurrentUser().orElseThrow().getOrganizationRole().isMember();
+    }
     
     public Optional<Organization> getCurrentOrganization() {
         return getCurrentUser().map(User::getOrganization);
@@ -57,6 +61,7 @@ public class SecurityUtils {
     public boolean isOrganizationOwner() {
         return hasOrganizationRole(OrganizationRole.OWNER);
     }
+
     public boolean isOrganizationAdmin() {
         return hasOrganizationRole(OrganizationRole.ADMIN);
     }

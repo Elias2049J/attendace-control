@@ -29,9 +29,10 @@ public class CalendarController {
             endDate = startDate.plusMonths(1).minusDays(1);
         }
         model.addAttribute("sessions", calendarService.getCalendarView(startDate, endDate));
-        model.addAttribute("activities", activityService.listActivities());
+        model.addAttribute("activities", activityService.listActivitiesSorted());
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
+        model.addAttribute("activeMenu", "calendar");
         return "calendar/view";
     }
     @GetMapping("/activities")

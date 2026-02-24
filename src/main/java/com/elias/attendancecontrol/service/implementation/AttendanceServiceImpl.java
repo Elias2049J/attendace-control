@@ -1,22 +1,17 @@
 package com.elias.attendancecontrol.service.implementation;
+import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.*;
 import com.elias.attendancecontrol.persistence.repository.AttendanceRepository;
 import com.elias.attendancecontrol.persistence.repository.QrTokenRepository;
 import com.elias.attendancecontrol.persistence.repository.SessionRepository;
 import com.elias.attendancecontrol.persistence.repository.UserRepository;
-import com.elias.attendancecontrol.service.AttendanceService;
-import com.elias.attendancecontrol.service.EnrollmentService;
-import com.elias.attendancecontrol.service.LogService;
-import com.elias.attendancecontrol.service.TokenService;
+import com.elias.attendancecontrol.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -29,6 +24,10 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final TokenService tokenService;
     private final LogService logService;
     private final EnrollmentService enrollmentService;
+    private final SecurityUtils securityUtils;
+    private final ActivityService activityService;
+    private final UserService userService;
+
     @Override
     @Transactional
     public Attendance registerAttendance(Long userId, String qrToken) {
@@ -93,12 +92,12 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         validateSessionTolerance(session);
 
-        if (session.getStatus() == SessionStatus.CLOSED) {
+        if (session.getStatus().isClosed()) {
             throw new IllegalStateException("No se puede editar la asistencia, la sesión está cerrada");
         }
 
-        if (session.getStatus() != SessionStatus.ACTIVE) {
-            throw new IllegalStateException("La sesión no está activa. Estado: " + session.getStatus());
+        if (!session.getStatus().isActive()) {
+            throw new IllegalStateException("La sesión no está activa. Estado: " + session.getStatus().getDisplayName());
         }
 
         List<Attendance> attendances = new ArrayList<>();
@@ -204,7 +203,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         try {
             Session session = sessionRepository.findById(sessionId)
                     .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
-            return session.getStatus() == SessionStatus.ACTIVE;
+            return session.getStatus().isActive();
         } catch (IllegalArgumentException e) {
             log.warn("Session validation failed: {}", e.getMessage());
             return false;
@@ -253,13 +252,36 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
         return attendanceRepository.findBySession(session);
     }
-    @Transactional(readOnly = true)
+
+
     @Override
     public List<Attendance> getAttendanceByUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         return attendanceRepository.findByUser(user);
     }
+
+    @Override
+    public Map<String, Object> getAttendanceCountByUserIdAndActivityId(Long userId, Long activityId) {
+        List<Attendance> attendances = getAttendancesByUserAndActivity(userId, activityId);
+
+        long totalAbsent = attendances.stream().filter(a -> a.getStatus().isAbsent()).count();
+        long totalPresent = attendances.stream().filter(a -> a.getStatus().isPresent()).count();
+        long totalLate = attendances.stream().filter(a -> a.getStatus().isLate()).count();
+
+
+        Map<String, Object> attendancesCount = new HashMap<>();
+        attendancesCount.put("totalAbsent", totalAbsent);
+        attendancesCount.put("totalPresent", totalPresent);
+        attendancesCount.put("totalLate", totalLate);
+        return attendancesCount;
+    }
+
+    @Override
+    public List<Attendance> getAttendancesByUserAndActivity(Long userId, Long activityId) {
+        return attendanceRepository.findAllByUser_IdAndSession_Activity_Id(userId, activityId);
+    }
+
     private AttendanceStatus determineStatus(Session session) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime sessionStart = LocalDateTime.of(session.getSessionDate(), session.getStartTime());

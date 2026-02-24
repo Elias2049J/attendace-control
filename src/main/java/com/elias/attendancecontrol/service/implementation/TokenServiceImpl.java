@@ -54,7 +54,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
     private QRToken generateQR(Session session) {
-        if (session.getStatus() != SessionStatus.ACTIVE) {
+        if (!session.getStatus().isActive()) {
             throw new IllegalStateException("Solo se puede generar QR para sesiones activas");
         }
 
@@ -110,7 +110,7 @@ public class TokenServiceImpl implements TokenService {
         boolean isValid = qrToken.getActive()
             && now.isAfter(qrToken.getValidFrom())
             && now.isBefore(qrToken.getValidUntil())
-            && qrToken.getSession().getStatus() == SessionStatus.ACTIVE;
+            && qrToken.getSession().getStatus().isActive();
         log.debug("QR validation result for token {}: {}", token, isValid);
         return isValid;
     }

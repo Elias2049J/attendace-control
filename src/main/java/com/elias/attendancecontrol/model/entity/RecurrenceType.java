@@ -12,4 +12,20 @@ public enum RecurrenceType {
     MONTHLY("Mensual");
 
     private final String displayName;
+
+    public boolean isUnique() {
+        return this == NONE;
+    }
+
+    public boolean isDaily() {
+        return this == DAILY;
+    }
+
+    public boolean isWeekly() {
+        return this == WEEKLY;
+    }
+
+    public boolean isMonthly() {
+        return this == MONTHLY;
+    }
 }

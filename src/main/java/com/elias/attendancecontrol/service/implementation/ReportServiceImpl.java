@@ -53,7 +53,7 @@ public class ReportServiceImpl implements ReportService {
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
         List<User> enrolledUsers = enrollmentRepository.findUsersByActivityAndStatus(
                 activity, EnrollmentStatus.ENROLLED);
-        List<Session> sessions = sessionRepository.findByActivity(activity);
+        List<Session> sessions = sessionRepository.findByActivityOrderBySessionDateAsc(activity);
         Map<String, Object> report = new HashMap<>();
         report.put("activity", activity);
         report.put("totalEnrolled", enrolledUsers.size());
@@ -90,7 +90,7 @@ public class ReportServiceImpl implements ReportService {
         if (!isEnrolled) {
             throw new IllegalArgumentException("El usuario no está inscrito en esta actividad");
         }
-        List<Session> sessions = sessionRepository.findByActivity(activity);
+        List<Session> sessions = sessionRepository.findByActivityOrderBySessionDateAsc(activity);
         List<Attendance> attendances = attendanceRepository.findByUser(
                 userRepository.findById(userId).orElseThrow()
         ).stream()
@@ -104,10 +104,10 @@ public class ReportServiceImpl implements ReportService {
         stats.put("attendanceRate", sessions.isEmpty() ? 0 :
                 (attendances.size() * 100.0 / sessions.size()));
         long present = attendances.stream()
-                .filter(att -> att.getStatus() == AttendanceStatus.PRESENT)
+                .filter(att -> att.getStatus().isPresent())
                 .count();
         long late = attendances.stream()
-                .filter(att -> att.getStatus() == AttendanceStatus.LATE)
+                .filter(att -> att.getStatus().isLate())
                 .count();
         stats.put("present", present);
         stats.put("late", late);

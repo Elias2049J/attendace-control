@@ -124,7 +124,7 @@ public class RecurrenceServiceImpl implements RecurrenceService {
             log.debug("Validation failed: recurrence type is null");
             return false;
         }
-        if (rule.getRecurrenceType() == RecurrenceType.WEEKLY &&
+        if (rule.getRecurrenceType().isWeekly() &&
             (rule.getDaysOfWeek() == null || rule.getDaysOfWeek().isEmpty())) {
             log.debug("Validation failed: WEEKLY recurrence without days of week");
             return false;

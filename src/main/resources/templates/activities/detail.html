@@ -5,7 +5,7 @@
     <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content">
         <div class="container-fluid py-4">
-            <nav aria-label="breadcrumb">
+            <nav aria-label="breadcrumb" class="d-none d-md-block">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
                     <li class="breadcrumb-item"><a th:href="@{/activities}" class="text-decoration-none">Actividades</a></li>
@@ -64,7 +64,7 @@
                                             <span th:text="${activity.recurrenceRule.recurrenceType.displayName}">Tipo</span>
                                         </p>
                                     </div>
-                                    <div class="col-md-6 mb-3" th:if="${activity.recurrenceRule.recurrenceType.name() != 'NONE'}">
+                                    <div class="col-md-6 mb-3" th:if="${!activity.recurrenceRule.recurrenceType.isUnique()}">
                                         <h6 class="text-muted">Periodo</h6>
                                         <p class="mb-0">
                                             <i class="bi bi-calendar-range"></i>
@@ -77,14 +77,14 @@
                                             </span>
                                         </p>
                                     </div>
-                                    <div class="col-md-6 mb-3" th:if="${activity.recurrenceRule.recurrenceType.name() == 'NONE'}">
+                                    <div class="col-md-6 mb-3" th:if="${activity.recurrenceRule.recurrenceType.isUnique()}">
                                         <h6 class="text-muted">Fecha</h6>
                                         <p class="mb-0">
                                             <i class="bi bi-calendar-day"></i>
                                             <strong th:text="${#temporals.format(activity.recurrenceRule.startDate, 'dd/MM/yyyy')}">01/01/2024</strong>
                                         </p>
                                     </div>
-                                    <div class="col-md-12 mb-3" th:if="${activity.recurrenceRule.recurrenceType.name() == 'WEEKLY' && activity.recurrenceRule.daysOfWeek != null}">
+                                    <div class="col-md-12 mb-3" th:if="${activity.recurrenceRule.recurrenceType.isWeekly() && activity.recurrenceRule.daysOfWeek != null}">
                                         <h6 class="text-muted">Días de la Semana</h6>
                                         <p class="mb-0">
                                             <i class="bi bi-calendar-week"></i>
@@ -131,7 +131,7 @@
                         </div>
                     </div>
 
-                    <div class="card mb-4 shadow" th:if="${activity.status.name() == 'DRAFT' and (isOrgOwnerOrAdmin == true or isSysAdmin == true)}">
+                    <div class="card mb-4 shadow" th:if="${activity.status.isDraft() and isOrgOwnerOrAdmin == true}">
                         <div class="card-body">
                             <div class="alert alert-warning mb-0">
                                 <i class="bi bi-exclamation-circle"></i>
@@ -150,28 +150,36 @@
                         </div>
                         <div class="card-body">
                             <div class="d-grid gap-2">
-                                <form th:if="${activity.status.name() == 'DRAFT' and isOrgOwnerOrAdmin == true}"
+                                <form th:if="${activity.status.isDraft() and isOrgOwnerOrAdmin == true}"
                                       th:action="@{/activities/{id}/activate(id=${activity.id})}"
                                       method="post">
                                     <button type="submit" class="btn btn-success w-100">
                                         <i class="bi bi-play-circle"></i> Activar y Generar Sesiones
                                     </button>
                                 </form>
-                                <a th:href="@{/activities/{id}/sessions(id=${activity.id})}"
+                                <a th:if="${isOrgMember == true or isEnrolled or isResponsible}"
+                                   th:href="@{/activities/{id}/sessions(id=${activity.id})}"
                                    class="btn btn-outline-primary">
-                                    <i class="bi bi-calendar3"></i> Ver Horario
+                                    <i class="bi bi-calendar3"></i> Ver Sesiones
                                 </a>
-                                <a th:href="@{/activities/{id}/attendances(id=${activity.id})}"
+                                <a th:if="${isResponsible or isOrgOwnerOrAdmin}"
+                                   th:href="@{/activities/{id}/attendances(id=${activity.id})}"
                                    class="btn btn-outline-primary">
                                     <i class="bi bi-check2-square"></i> Ver Asistencias
                                 </a>
-                                <a th:href="@{/activities/{id}/enrollments(id=${activity.id})}"
+                                <a th:if="${isOrgOwnerOrAdmin == true}"
+                                   th:href="@{/activities/{id}/enrollments(id=${activity.id})}"
                                    class="btn btn-outline-primary">
-                                    <i class="bi bi-person-plus"></i> Gestionar Inscripciones
+                                    <i class="bi bi-person-plus"></i> Gestionar Participantes
                                 </a>
-                                <a th:href="@{/activities/{id}/edit(id=${activity.id})}"
-                                   class="btn btn-outline-primary"
-                                   th:if="${isOrgOwnerOrAdmin == true}">
+                                <a th:if="${isOrgMember == true and isEnrolled}"
+                                   th:href="@{/activities/{id}/enrollments(id=${activity.id})}"
+                                   class="btn btn-outline-primary">
+                                    <i class="bi bi-person-plus"></i> Ver Participantes
+                                </a>
+                                <a th:if="${isOrgOwnerOrAdmin == true}"
+                                   th:href="@{/activities/{id}/edit(id=${activity.id})}"
+                                   class="btn btn-outline-primary">
                                     <i class="bi bi-pencil"></i> Editar Actividad
                                 </a>
                                 <a th:href="@{/activities/{id}/cancel-confirm(id=${activity.id})}"

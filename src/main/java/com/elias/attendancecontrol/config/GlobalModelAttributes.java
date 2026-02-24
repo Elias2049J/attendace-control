@@ -41,6 +41,19 @@ public class GlobalModelAttributes {
     }
 
     /**
+     * Verifica si el usuario actual es miembro de la organización
+     */
+    @ModelAttribute("isOrgMember")
+    public Boolean isOrgMember() {
+        try {
+            return securityUtils.isOrganizationMember();
+        } catch (Exception e) {
+            log.trace("Error checking if user is org member", e);
+            return false;
+        }
+    }
+
+    /**
      * Verifica si el usuario actual es administrador de organización
      */
     @ModelAttribute("isOrgAdmin")

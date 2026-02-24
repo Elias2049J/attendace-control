@@ -71,4 +71,8 @@ public class User {
     protected void onCreate() {
         createdDate = LocalDateTime.now();
     }
+
+    public String getFullname() {
+        return name + " " + lastname;
+    }
 }

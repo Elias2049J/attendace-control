@@ -28,7 +28,6 @@
                         <select class="form-select" id="searchRole" name="role">
                             <option value="">Todos los roles</option>
                             <option value="ADMIN">Administrador</option>
-                            <option value="RESPONSIBLE">Responsable</option>
                             <option value="USER">Usuario</option>
                         </select>
                     </div>
@@ -96,15 +95,10 @@
                             <td th:text="${user.name + ' ' + user.lastname}"></td>
                             <td th:text="${user.email}"></td>
                             <td>
-                                <span class="badge"
-                                      th:classappend="${user.systemRole.name() == 'ADMIN'} ? 'bg-danger' :
-                                                       (${user.systemRole.name() == 'RESPONSIBLE'} ? 'bg-warning text-dark' : 'bg-primary')"
-                                      th:text="${user.systemRole}"></span>
+                                <span th:text="${user.systemRole.displayName}"></span>
                             </td>
                             <td>
-                                <span class="badge"
-                                      th:classappend="${user.active} ? 'bg-success' : 'bg-secondary'"
-                                      th:text="${user.active} ? 'Activo' : 'Inactivo'"></span>
+                                <span th:text="${user.active} ? 'Activo' : 'Inactivo'"></span>
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">

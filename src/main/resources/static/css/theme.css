@@ -453,37 +453,95 @@ body {
     background-color: var(--mirae-accent-green-hover);
 }
 
-/* Utility classes */
-.bg-mirae-dark {
-    background-color: var(--mirae-primary-dark) !important;
-    color: var(--mirae-white) !important;
+/* ============================================
+   CALENDAR SESSION CARDS
+   ============================================ */
+.session-card {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-.bg-mirae-green {
-    background-color: var(--mirae-accent-green) !important;
-    color: var(--mirae-white) !important;
+.session-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
 }
 
-.text-mirae-dark {
-    color: var(--mirae-primary-dark) !important;
+.session-card .border-end {
+    border-color: rgba(44, 62, 80, 0.1) !important;
 }
 
-.text-mirae-green {
-    color: var(--mirae-accent-green) !important;
+.calendar-sessions {
+    animation: fadeIn 0.5s ease-in;
 }
 
-.border-mirae-green {
-    border-color: var(--mirae-accent-green) !important;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Responsive adjustments */
+/* Activity card improvements */
+.activity-card {
+    border-left: 4px solid var(--mirae-accent-green);
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.activity-card:hover {
+    border-left-color: var(--mirae-accent-green-hover);
+    box-shadow: 0 6px 16px rgba(38, 166, 154, 0.15) !important;
+    transform: translateX(4px);
+}
+
+/* Search input improvements */
+#searchActivities {
+    transition: all 0.3s ease;
+}
+
+#searchActivities:focus {
+    box-shadow: 0 0 0 3px rgba(38, 166, 154, 0.1);
+}
+
+/* Filter buttons improvements */
+.btn-group .btn {
+    transition: all 0.2s ease;
+}
+
+.btn-group .btn.active {
+    background-color: var(--mirae-primary-dark);
+    border-color: var(--mirae-primary-dark);
+    color: var(--mirae-white);
+    font-weight: 600;
+}
+
+/* Empty state styling */
+.text-center.text-muted {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Card shadows */
+.shadow-sm {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Responsive day display in calendar */
 @media (max-width: 768px) {
-    .card {
-        margin-bottom: 1rem;
+    .session-card .col-auto {
+        min-width: 70px !important;
     }
 
-    .stat-card {
-        margin-bottom: 1rem;
+    .session-card .col-auto span:first-child {
+        font-size: 0.75rem !important;
+    }
+
+    .session-card .col-auto span:nth-child(2) {
+        font-size: 2rem !important;
     }
 }
 
@@ -565,21 +623,3 @@ hr {
     border-color: var(--mirae-accent-green);
     box-shadow: 0 0 0 0.25rem rgba(38, 166, 154, 0.25);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

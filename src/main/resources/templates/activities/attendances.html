@@ -30,8 +30,8 @@
                                     <td th:text="${attendance.user.name + ' ' + attendance.user.lastname}">Usuario</td>
                                     <td th:text="${#temporals.format(attendance.registrationTime, 'HH:mm')}">Hora</td>
                                     <td>
-                                        <span th:class="'badge ' + ${attendance.status == 'PRESENT' ? 'bg-success' : 'bg-warning text-dark'}"
-                                              th:text="${attendance.status}">Estado</span>
+                                        <span th:class="'badge ' + ${attendance.status.isPresent() ? 'bg-success' : 'bg-warning text-dark'}"
+                                              th:text="${attendance.status.displayName}">Estado</span>
                                     </td>
                                 </tr>
                             </tbody>

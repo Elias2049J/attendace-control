@@ -3,41 +3,52 @@
 <head th:replace="~{layout :: head('Código QR')}"></head>
 <body class="d-flex flex-column min-vh-100">
     <div th:replace="~{layout :: sidebar}"></div>
-    <main class="flex-grow-1" id="main-content"><div class="container py-4">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
-                <li class="breadcrumb-item"><a th:href="@{/calendar}" class="text-decoration-none">Calendario</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Código QR</li>
-            </ol>
-        </nav>
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h3 class="mb-0">
-                            <i class="bi bi-qr-code"></i> Código QR de Asistencia
-                        </h3>
-                        <div class="mt-2">
-                            <span class="badge bg-success fs-6" id="sessionStatus">SESIÓN ACTIVA</span>
+    <main class="flex-grow-1" id="main-content">
+        <div class="container py-4">
+            <nav aria-label="breadcrumb" class="d-none d-md-block">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/activities}" class="text-decoration-none">Actividades</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/activities/{id}(id=${activity.id})}" class="text-decoration-none" th:text="${activity.name}">Actividad</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/activities/{id}/sessions(id=${activity.id})}" class="text-decoration-none">Programación</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/activities/{activityId}/sessions/{sessionId}/manage(activityId=${activity.id}, sessionId=${sessionEntity.id})}" class="text-decoration-none">Gestión de Sesión</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Código QR</li>
+                </ol>
+            </nav>
+
+            <div class="mb-3">
+                <a th:href="@{/activities/{activityId}/sessions/{sessionId}/manage(activityId=${activity.id}, sessionId=${sessionEntity.id})}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver a Gestión de Sesión
+                </a>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white text-center">
+                            <h3 class="mb-0">
+                                <i class="bi bi-qr-code"></i> Código QR de Asistencia
+                            </h3>
+                            <div class="mt-2">
+                                <span class="badge bg-success fs-6" id="sessionStatus">SESIÓN ACTIVA</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="card-body text-center">
-                        <div th:if="${success}" class="alert alert-success">
-                            <i class="bi bi-check-circle-fill"></i> <span th:text="${success}"></span>
-                        </div>
-                        <div th:if="${error}" class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}"></span>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="card bg-light">
-                                    <div class="card-body">
-                                        <h2 class="display-4 mb-0" id="attendanceCount">
-                                            <span th:text="${attendances.size()}">0</span>
-                                        </h2>
-                                        <p class="text-muted mb-0">Asistencias Registradas</p>
-                                    </div>
+                        <div class="card-body text-center">
+                            <div th:if="${success}" class="alert alert-success">
+                                <i class="bi bi-check-circle-fill"></i> <span th:text="${success}"></span>
+                            </div>
+                            <div th:if="${error}" class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}"></span>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h2 class="display-4 mb-0" id="attendanceCount">
+                                                <span th:text="${attendances.size()}">0</span>
+                                            </h2>
+                                            <p class="text-muted mb-0">Asistencias Registradas</p>
+                                        </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -106,7 +117,7 @@
                                     <p class="mb-1"><strong>Tolerancia:</strong></p>
                                     <p>
                                         <span class="badge bg-info">
-                                            <span th:text="${session.toleranceMinutes}">15</span> minutos
+                                            <span th:text="${sessionEntity.toleranceMinutes}">15</span> minutos
                                         </span>
                                     </p>
                                 </div>
@@ -117,25 +128,25 @@
                             La página se actualizará automáticamente cuando expire el código QR (cada minuto).
                         </div>
                         <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                            <form th:action="@{/qr/regenerate/{id}(id=${session.id})}" method="post" class="d-inline">
+                            <form th:action="@{/activities/{activityId}/sessions/{sessionId}/manage/qr/regenerate(activityId=${activity.id}, sessionId=${sessionEntity.id})}" method="post" class="d-inline">
                                 <button type="submit" class="btn btn-warning">
                                     <i class="bi bi-arrow-clockwise"></i> Regenerar QR
                                 </button>
                             </form>
-                            <form th:action="@{/sessions/{id}/close(id=${session.id})}" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-danger"
-                                        onclick="return confirm('¿Cerrar esta sesión? No se podrán registrar más asistencias.')">
+                            <form th:action="@{/sessions/{id}/close(id=${sessionEntity.id})}" method="post" class="d-inline"
+                                  onsubmit="return confirm('¿Cerrar esta sesión? No se podrán registrar más asistencias.')">
+                                <button type="submit" class="btn btn-danger">
                                     <i class="bi bi-stop-circle"></i> Cerrar Sesión
                                 </button>
                             </form>
-                            <a th:href="@{/calendar}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Volver al Calendario
+                            <a th:href="@{/activities/{activityId}/sessions/{sessionId}/manage(activityId=${activity.id}, sessionId=${sessionEntity.id})}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver a Gestión
                             </a>
                         </div>
                     </div>
                 </div>
-                <div class="card mt-3">
-                    <div class="card-header">
+
+                <!-- Tabla de Asistencias Registradas -->
                         <h5 class="mb-0"><i class="bi bi-people"></i> Asistencias Registradas</h5>
                     </div>
                     <div class="card-body">
@@ -154,8 +165,8 @@
                                         <td><small th:text="${#temporals.format(attendance.registrationTime, 'HH:mm:ss')}"></small></td>
                                         <td th:text="${attendance.user.name + ' ' + attendance.user.lastname}"></td>
                                         <td>
-                                            <span th:if="${attendance.status.name() == 'PRESENT'}" class="badge bg-success">Presente</span>
-                                            <span th:if="${attendance.status.name() == 'LATE'}" class="badge bg-warning">Tarde</span>
+                                            <span th:if="${attendance.status.isPresent()}" class="badge bg-success" th:text="${attendance.status.displayName}">Presente</span>
+                                            <span th:if="${attendance.status.isLate()}" class="badge bg-warning" th:text="${attendance.status.displayName}">Tarde</span>
                                         </td>
                                         <td>
                                             <span class="badge bg-info" th:text="${attendance.registrationType}">QR</span>
@@ -176,7 +187,7 @@
     </div></main><div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
     <script th:inline="javascript">
-        const sessionId = /*[[${session.id}]]*/ 0;
+        const sessionId = /*[[${sessionEntity.id}]]*/ 0;
         const qrDurationMinutes = 1;
         let startTime = Date.now();
 

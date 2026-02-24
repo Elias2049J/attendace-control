@@ -6,7 +6,7 @@
     <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content">
     <div class="container-fluid py-4">
-        <nav aria-label="breadcrumb">
+        <nav aria-label="breadcrumb" class="d-none d-md-block">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
                 <li class="breadcrumb-item"><a th:href="@{/activities}" class="text-decoration-none">Actividades</a></li>
@@ -26,7 +26,7 @@
                     <small th:text="${activity.description}">Descripción</small>
                 </p>
             </div>
-            <div>
+            <div th:if="${isOrgOwnerOrAdmin}">
                 <a th:href="@{/activities/{id}/enrollments/enroll(id=${activity.id})}"
                    class="btn btn-primary">
                     <i class="bi bi-person-plus-fill me-1"></i>
@@ -56,7 +56,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div th:if="${isOrgOwnerOrAdmin}" class="col-md-4">
                 <div class="card border-info">
                     <div class="card-body">
                         <h5 class="card-title text-info">
@@ -95,7 +95,7 @@
                                 <th>Email</th>
                                 <th>Fecha Inscripción</th>
                                 <th>Estado</th>
-                                <th>Acciones</th>
+                                <th th:if="${isOrgOwnerOrAdmin}" >Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -116,21 +116,20 @@
                                     01/01/2024 10:00
                                 </td>
                                 <td>
-                                    <span th:if="${enrollment.status.name() == 'ENROLLED'}"
-                                          class="badge bg-success">
-                                        <i class="bi bi-check-circle me-1"></i>Inscrito
+                                    <span th:if="${enrollment.status.isEnrolled()}">
+                                        <i class="bi bi-check-circle me-1"></i> <span th:text="${enrollment.status.displayName}">Inscrito</span>
                                     </span>
-                                    <span th:if="${enrollment.status.name() == 'DROPPED'}"
+                                    <span th:if="${enrollment.status.isDropped()}"
                                           class="badge bg-danger">
-                                        <i class="bi bi-x-circle me-1"></i>Dado de Baja
+                                        <i class="bi bi-x-circle me-1"></i><span th:text="${enrollment.status.displayName}">Dado de Baja</span>
                                     </span>
-                                    <span th:if="${enrollment.status.name() == 'COMPLETED'}"
+                                    <span th:if="${enrollment.status.isCompleted()}"
                                           class="badge bg-info">
-                                        <i class="bi bi-award me-1"></i>Completado
+                                        <i class="bi bi-award me-1"></i><span th:text="${enrollment.status.displayName}">Completado</span>
                                     </span>
                                 </td>
-                                <td>
-                                    <form th:if="${enrollment.status.name() == 'ENROLLED'}"
+                                <td th:if="${isOrgOwnerOrAdmin}">
+                                    <form th:if="${enrollment.status.isEnrolled()}"
                                           th:action="@{/activities/{activityId}/enrollments/{userId}/remove(activityId=${activity.id}, userId=${enrollment.user.id})}"
                                           method="post"
                                           onsubmit="return confirm('¿Está seguro de remover este participante?');"
@@ -140,7 +139,7 @@
                                             <i class="bi bi-person-dash"></i>
                                         </button>
                                     </form>
-                                    <span th:unless="${enrollment.status.name() == 'ENROLLED'}"
+                                    <span th:unless="${enrollment.status.isEnrolled()}"
                                           class="text-muted">
                                         <small>Sin acciones</small>
                                     </span>

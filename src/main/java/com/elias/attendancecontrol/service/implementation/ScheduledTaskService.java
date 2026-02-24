@@ -19,7 +19,7 @@ public class ScheduledTaskService {
     @Scheduled(cron = "${scheduler.activity-completion.cron}")
     public void autoCompleteFinishedActivities() {
         log.info("Starting auto-completion check for finished activities");
-        List<Activity> scheduledActivities = activityRepository.findByStatus(ActivityStatus.SCHEDULED);
+        List<Activity> scheduledActivities = activityRepository.findByStatusOrderByIdDesc(ActivityStatus.SCHEDULED);
         int completedCount = 0;
         for (Activity activity : scheduledActivities) {
             try {

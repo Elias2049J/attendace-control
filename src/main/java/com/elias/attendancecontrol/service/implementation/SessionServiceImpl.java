@@ -26,6 +26,7 @@ public class SessionServiceImpl implements SessionService {
     private final QrTokenRepository qrTokenRepository;
     private final LogService logService;
     private final SecurityUtils securityUtils;
+
     @Override
     @Transactional
     public Session activateSession(Long id) {
@@ -33,9 +34,9 @@ public class SessionServiceImpl implements SessionService {
         Session session = sessionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
         validateSessionTolerance(session);
-        if (session.getStatus() != SessionStatus.PLANNED) {
+        if (!session.getStatus().isPlanned()) {
             throw new IllegalStateException(
-                "Solo se pueden activar sesiones en estado PLANNED. Estado actual: " + session.getStatus());
+                "Solo se pueden activar sesiones en estado PLANNED. Estado actual: " + session.getStatus().getDisplayName());
         }
         LocalDate today = LocalDate.now();
         if (session.getSessionDate().isAfter(today.plusDays(1))) {
@@ -53,15 +54,16 @@ public class SessionServiceImpl implements SessionService {
         log.info("Session activated successfully: {}", id);
         return savedSession;
     }
+
     @Override
     @Transactional
     public Session closeSession(Long id) {
         log.debug("Attempting to close session: {}", id);
         Session session = sessionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
-        if (session.getStatus() != SessionStatus.ACTIVE) {
+        if (!session.getStatus().isActive()) {
             throw new IllegalStateException(
-                "Solo se pueden cerrar sesiones en estado ACTIVE. Estado actual: " + session.getStatus());
+                "Solo se pueden cerrar sesiones en estado ACTIVE. Estado actual: " + session.getStatus().getDisplayName());
         }
         session.setStatus(SessionStatus.CLOSED);
         qrTokenRepository.findBySessionAndActiveTrue(session)
@@ -75,11 +77,16 @@ public class SessionServiceImpl implements SessionService {
                 .eventType("SESSION_CLOSED")
                 .description("Sesión cerrada: " + session.getId())
                 .session(session)
+                .user(securityUtils.getCurrentUser().orElse(null))
                 .details("Asistencias registradas: " + session.getAttendances().size())
         );
         log.info("Session closed successfully: {}", id);
+
+        checkAndCompleteActivityIfAllSessionsFinished(session.getActivity());
+
         return savedSession;
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<Session> listSessions() {
@@ -93,21 +100,23 @@ public class SessionServiceImpl implements SessionService {
                     return sessionRepository.findAll();
                 });
     }
+
     @Override
     @Transactional(readOnly = true)
     public Session getSessionById(Long id) {
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
     }
+
     @Override
     public boolean validateState(Session session, SessionStatus targetStatus) {
         if (session == null || targetStatus == null) {
             return false;
         }
         return switch (targetStatus) {
-            case ACTIVE -> session.getStatus() == SessionStatus.PLANNED;
-            case CLOSED -> session.getStatus() == SessionStatus.ACTIVE;
-            case CANCELLED -> session.getStatus() == SessionStatus.PLANNED;
+            case ACTIVE -> session.getStatus().isPlanned();
+            case CLOSED -> session.getStatus().isActive();
+            case CANCELLED -> session.getStatus().isPlanned();
             default -> false;
         };
     }
@@ -117,7 +126,7 @@ public class SessionServiceImpl implements SessionService {
         try {
             Session session = getSessionById(sessionId);
             LocalDate today = LocalDate.now();
-            return session.getStatus() == SessionStatus.PLANNED
+            return session.getStatus().isPlanned()
                 && !session.getSessionDate().isAfter(today.plusDays(1));
         } catch (IllegalArgumentException e) {
             return false;
@@ -128,11 +137,12 @@ public class SessionServiceImpl implements SessionService {
     public boolean canClose(Long sessionId) {
         try {
             Session session = getSessionById(sessionId);
-            return session.getStatus() == SessionStatus.ACTIVE;
+            return session.getStatus().isActive();
         } catch (IllegalArgumentException e) {
             return false;
         }
     }
+
     @Override
     @Transactional
     public List<Session> generateSessions(Long activityId) {
@@ -143,17 +153,26 @@ public class SessionServiceImpl implements SessionService {
         if (rule == null) {
             throw new IllegalStateException("La actividad no tiene regla de recurrencia");
         }
+
+        log.info("Generating sessions for activity {} with recurrence type: {}, daysOfWeek: {}",
+                activityId, rule.getRecurrenceType(), rule.getDaysOfWeek());
+
         List<Session> sessions = new ArrayList<>();
         LocalDate currentDate = rule.getStartDate();
         LocalDate endDate = rule.getEndDate() != null
             ? rule.getEndDate()
             : currentDate.plusMonths(3);
+
+        log.debug("Date range for session generation: {} to {}", currentDate, endDate);
+
         while (!currentDate.isAfter(endDate)) {
             if (shouldGenerateSession(currentDate, rule)) {
                 if (!sessionRepository.existsByActivityAndSessionDate(activity, currentDate)) {
                     Session session = createSessionForDate(activity, currentDate, rule);
                     sessions.add(sessionRepository.save(session));
                     log.debug("Session created for date: {}", currentDate);
+                } else {
+                    log.debug("Session already exists for date: {}", currentDate);
                 }
             }
             currentDate = getNextDate(currentDate, rule.getRecurrenceType());
@@ -233,11 +252,12 @@ public class SessionServiceImpl implements SessionService {
             return false;
         }
 
-        DayOfWeek dayOfWeek = date.getDayOfWeek();
-        String dayName = dayOfWeek.toString();
+        DayOfWeek javaDayOfWeek = date.getDayOfWeek();
+        String dayName = javaDayOfWeek.name();
+
         boolean isInDays = daysOfWeek.toUpperCase().contains(dayName);
 
-        log.trace("Checking if {} ({}) is in configured days: {} -> {}",
+        log.debug("Checking if {} ({}) is in configured days: {} -> {}",
             date, dayName, daysOfWeek, isInDays);
 
         return isInDays;
@@ -252,11 +272,12 @@ public class SessionServiceImpl implements SessionService {
         session.setStatus(SessionStatus.PLANNED);
         return session;
     }
+
     private LocalDate getNextDate(LocalDate current, RecurrenceType type) {
         return switch (type) {
-            case NONE -> current.plusYears(10); // Salta muy adelante para terminar el loop
+            case NONE -> current.plusYears(10);
             case DAILY -> current.plusDays(1);
-            case WEEKLY -> current.plusWeeks(1);
+            case WEEKLY -> current.plusDays(1);
             case MONTHLY -> current.plusMonths(1);
         };
     }
@@ -282,6 +303,37 @@ public class SessionServiceImpl implements SessionService {
         log.debug("Getting sessions for activity: {}", activityId);
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada"));
-        return sessionRepository.findByActivity(activity);
+        return sessionRepository.findByActivityOrderBySessionDateAsc(activity);
+    }
+
+    private void checkAndCompleteActivityIfAllSessionsFinished(Activity activity) {
+        if (activity == null) {
+            log.warn("Activity is null, cannot check completion status");
+            return;
+        }
+
+        if (activity.getStatus().isFinalState()) {
+            log.debug("Activity {} is already in final state: {}",
+                activity.getId(), activity.getStatus());
+            return;
+        }
+
+        boolean hasActiveSessions = sessionRepository.existsActiveOrPlannedSessionsByActivityId(activity.getId());
+
+        if (!hasActiveSessions) {
+            log.info("All sessions for activity {} are closed or cancelled. Completing activity.",
+                activity.getId());
+
+            activity.setStatus(ActivityStatus.COMPLETED);
+            activityRepository.save(activity);
+
+            logService.log(builder -> builder
+                .eventType("ACTIVITY_AUTO_COMPLETED")
+                .description("Actividad completada automáticamente: " + activity.getName())
+                .details("Todas las sesiones han sido cerradas o canceladas.")
+            );
+
+            log.info("Activity {} automatically completed", activity.getId());
+        }
     }
 }

@@ -74,6 +74,7 @@ public class Organization {
             plan = OrganizationPlan.FREE;
         }
     }
+
     public void applyPlanLimits(Integer freeMaxUsers, Integer freeMaxActivities,
                                 Integer basicMaxUsers, Integer basicMaxActivities,
                                 Integer premiumMaxUsers, Integer premiumMaxActivities) {

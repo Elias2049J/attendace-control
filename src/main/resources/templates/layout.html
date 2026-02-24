@@ -24,12 +24,12 @@
                 <span class="ms-2">Inicio</span>
             </a>
             <a th:href="@{/activities}" th:class="'sidebar-link' + ${activeMenu == 'activities' ? ' active' : ''}"
-                th:if="${isOrgOwnerOrAdmin == true}">
+                th:if="${isOrgOwnerOrAdmin == true or isOrgMember == true}">
                 <i class="bi bi-list-task"></i>
                 <span class="ms-2">Actividades</span>
             </a>
             <a th:href="@{/calendar}" th:class="'sidebar-link' + ${activeMenu == 'calendar' ? ' active' : ''}"
-                th:if="${isOrgOwnerOrAdmin == true}">
+                th:if="${isOrgOwnerOrAdmin == true or isOrgMember == true}">
                 <i class="bi bi-calendar3"></i>
                 <span class="ms-2">Calendario</span>
             </a>
@@ -77,12 +77,12 @@
                     <small>Inicio</small>
                 </a>
                 <a th:href="@{/activities}" th:class="'mobile-nav-item' + ${activeMenu == 'activities' ? ' active' : ''}"
-                    th:if="${isOrgOwnerOrAdmin == true}">
+                   th:if="${isOrgOwnerOrAdmin == true or isOrgMember == true}">
                     <i class="bi bi-list-task"></i>
                     <small>Actividades</small>
                 </a>
                 <a th:href="@{/calendar}" th:class="'mobile-nav-item' + ${activeMenu == 'calendar' ? ' active' : ''}"
-                    th:if="${isOrgOwnerOrAdmin == true}">
+                   th:if="${isOrgOwnerOrAdmin == true or isOrgMember == true}">
                     <i class="bi bi-calendar3"></i>
                     <small>Calendario</small>
                 </a>
@@ -133,12 +133,10 @@
             </p>
         </div>
     </footer>
-
     <th:block th:fragment="scripts">
         <script th:src="@{/js/bootstrap.bundle.js}"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-
                 const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
                 alerts.forEach(function(alert) {
                     setTimeout(function() {

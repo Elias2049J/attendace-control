@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findByActivity(Activity activity);
-    List<Enrollment> findByUser(User user);
+    List<Enrollment> findAllByUser(User user);
     List<Enrollment> findByActivityAndStatus(Activity activity, EnrollmentStatus status);
     Optional<Enrollment> findByActivityAndUser(Activity activity, User user);
     boolean existsByActivityAndUser(Activity activity, User user);

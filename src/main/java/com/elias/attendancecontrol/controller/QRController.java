@@ -24,6 +24,7 @@ public class QRController {
         model.addAllAttributes(qrData);
         return "qr/view";
     }
+
     @PostMapping("/regenerate/{sessionId}")
     public String regenerateQR(@PathVariable Long sessionId, RedirectAttributes redirectAttributes) {
         log.debug("Regenerating QR for session: {}", sessionId);
@@ -31,6 +32,7 @@ public class QRController {
         redirectAttributes.addFlashAttribute("success", "Código QR regenerado exitosamente");
         return "redirect:/qr/generate/" + sessionId;
     }
+
     @PostMapping("/validate")
     @ResponseBody
     public boolean validateQR(@RequestBody String token) {

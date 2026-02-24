@@ -6,7 +6,7 @@
     <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content">
         <div class="container-fluid py-4">
-                    <nav aria-label="breadcrumb">
+                    <nav aria-label="breadcrumb" class="d-none d-md-block">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none">Inicio</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Organizaciones</li>
@@ -41,7 +41,7 @@
                                         <span th:unless="${org.active}" class="badge bg-secondary">Inactiva</span>
                                     </div>
                                     <div class="mb-3">
-                                        <span class="badge bg-primary" th:text="${org.plan}">PLAN</span>
+                                        <span class="badge bg-primary" th:text="${org.plan.displayName}">PLAN</span>
                                     </div>
                                     <div class="d-flex justify-content-between text-muted small mb-3">
                                         <div>

@@ -61,7 +61,7 @@ public class ActivityIncidentServiceImpl implements ActivityIncidentService {
         if (sessionRepository.existsByActivityAndSessionDate(activity, newDate)) {
             throw new IllegalStateException("Ya existe una sesión programada para la nueva fecha");
         }
-        if (originalSession.getStatus() == SessionStatus.CLOSED) {
+        if (originalSession.getStatus().isClosed()) {
             throw new IllegalStateException("No se puede reprogramar una sesión ya cerrada");
         }
         if (attendanceRepository.existsBySession(originalSession)) {

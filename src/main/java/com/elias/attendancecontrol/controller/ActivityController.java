@@ -5,6 +5,7 @@ import com.elias.attendancecontrol.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 @Slf4j
 @Controller
 @RequestMapping("/activities")
@@ -27,14 +30,24 @@ public class ActivityController {
     private final AttendanceService attendanceService;
     private final EnrollmentService enrollmentService;
     private final RecurrenceService recurrenceService;
+    private final TokenService tokenService;
     private final SecurityUtils securityUtils;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
     public String listActivities(Model model) {
+        User user = securityUtils.getCurrentUserOrThrow();
         log.debug("Listing all activities");
-        List<Activity> activities = activityService.listActivities();
-        model.addAttribute("activities", activities);
+        List<Activity> allActivities = new ArrayList<>();
+        if (securityUtils.isOrganizationOwnerOrAdmin()){
+             allActivities = activityService.listActivitiesSorted();
+        }
+        model.addAttribute("responsibleActivities", activityService.findByResponsible(user.getId()));
+        model.addAttribute("enrolledActivities", enrollmentService.getActivitiesByUser(user.getId()));
+        model.addAttribute("activities", allActivities);
         model.addAttribute("activeMenu", "activities");
         return "activities/list";
     }
@@ -299,11 +312,13 @@ public class ActivityController {
         }
         return "redirect:/activities";
     }
+
     @GetMapping("/{id}")
     public String viewActivity(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Viewing activity detail: {}", id);
         try {
             Activity activity = activityService.getActivityById(id);
+            long userId = securityUtils.getCurrentUserOrThrow().getId();
             if (activity.getOrganization() != null) {
                 securityUtils.validateResourceOwnership(activity.getOrganization().getId());
             }
@@ -314,6 +329,9 @@ public class ActivityController {
             model.addAttribute("enrolledCount", enrolledCount);
             model.addAttribute("canManage", securityUtils.canManageActivities());
             model.addAttribute("activeMenu", "activities");
+            model.addAttribute("isEnrolled", enrollmentService.isUserEnrolled(id, userId));
+            model.addAttribute("isResponsible", activityService.isResponsible(id, userId));
+            model.addAttribute("attendancesCount", attendanceService.getAttendanceCountByUserIdAndActivityId(id, userId));
             return "activities/detail";
         } catch (SecurityException e) {
             log.warn("User attempted to view activity from different organization: {}", id);
@@ -321,6 +339,7 @@ public class ActivityController {
             return "redirect:/activities";
         }
     }
+
     @GetMapping("/{id}/sessions")
     public String viewSchedule(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Viewing schedule for activity: {}", id);
@@ -340,6 +359,7 @@ public class ActivityController {
             return "redirect:/activities";
         }
     }
+
     @GetMapping("/{id}/attendances")
     public String viewAttendances(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Viewing attendances for activity: {}", id);
@@ -396,4 +416,115 @@ public class ActivityController {
                         securityUtils.hasRole("ORG_ADMIN") ? "ORG_ADMIN" : "ORG_MEMBER";
         return activityService.searchActivities(q, currentUser.getId(), role);
     }
+
+    @GetMapping("/{activityId}/sessions/{sessionId}/manage")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    public String manageSession(@PathVariable Long activityId,
+                               @PathVariable Long sessionId,
+                               Model model,
+                               RedirectAttributes redirectAttributes) {
+        log.debug("Managing session {} from activity {}", sessionId, activityId);
+        try {
+            Activity activity = activityService.getActivityById(activityId);
+            if (activity.getOrganization() != null) {
+                securityUtils.validateResourceOwnership(activity.getOrganization().getId());
+            }
+
+            Session session = sessionService.getSessionById(sessionId);
+            if (!session.getActivity().getId().equals(activityId)) {
+                throw new IllegalArgumentException("La sesión no pertenece a esta actividad");
+            }
+
+            List<Attendance> attendances = attendanceService.getAttendanceBySession(sessionId);
+            List<Enrollment> enrollments = enrollmentService.getEnrollmentsByActivity(activityId);
+            List<Enrollment> enrollmentsWithoutAttendance = enrollmentService.getEnrollmentsWithoutAttendance(activityId, attendances);
+
+            model.addAttribute("activity", activity);
+            model.addAttribute("sessionEntity", session);
+            model.addAttribute("attendances", attendances);
+            model.addAttribute("enrollments", enrollments);
+            model.addAttribute("enrollmentsWithoutAttendance", enrollmentsWithoutAttendance);
+
+            return "sessions/manage";
+        } catch (SecurityException e) {
+            log.warn("User attempted to access session from different organization: activityId={}, sessionId={}",
+                    activityId, sessionId);
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/activities";
+        } catch (IllegalArgumentException e) {
+            log.error("Error accessing session: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/activities/" + activityId + "/sessions";
+        }
+    }
+
+    @GetMapping("/{activityId}/sessions/{sessionId}/manage/qr")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    public String viewSessionQR(@PathVariable Long activityId,
+                                @PathVariable Long sessionId,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
+        log.debug("Viewing QR for session {} from activity {}", sessionId, activityId);
+        try {
+            Activity activity = activityService.getActivityById(activityId);
+            if (activity.getOrganization() != null) {
+                securityUtils.validateResourceOwnership(activity.getOrganization().getId());
+            }
+
+            Session sessionEntity = sessionService.getSessionById(sessionId);
+            if (!sessionEntity.getActivity().getId().equals(activityId)) {
+                throw new IllegalArgumentException("La sesión no pertenece a esta actividad");
+            }
+
+            if (!sessionEntity.getStatus().isActive()) {
+                redirectAttributes.addFlashAttribute("error", "La sesión debe estar activa para ver el código QR");
+                return "redirect:/activities/" + activityId + "/sessions/" + sessionId + "/manage";
+            }
+
+            Map<String, Object> qrData = tokenService.generateQRWithFullData(sessionId, baseUrl);
+
+            model.addAllAttributes(qrData);
+            model.addAttribute("activity", activity);
+            model.addAttribute("sessionEntity", sessionEntity);
+
+            return "qr/view";
+        } catch (SecurityException e) {
+            log.warn("User attempted to access QR from different organization: activityId={}, sessionId={}",
+                    activityId, sessionId);
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/activities";
+        } catch (IllegalArgumentException e) {
+            log.error("Error accessing QR: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/activities/" + activityId + "/sessions/" + sessionId + "/manage";
+        }
+    }
+
+    @PostMapping("/{activityId}/sessions/{sessionId}/manage/qr/regenerate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    public String regenerateSessionQR(@PathVariable Long activityId,
+                                     @PathVariable Long sessionId,
+                                     RedirectAttributes redirectAttributes) {
+        log.debug("Regenerating QR for session {} from activity {}", sessionId, activityId);
+        try {
+            Activity activity = activityService.getActivityById(activityId);
+            if (activity.getOrganization() != null) {
+                securityUtils.validateResourceOwnership(activity.getOrganization().getId());
+            }
+
+            tokenService.regenerateQR(sessionId);
+            redirectAttributes.addFlashAttribute("success", "Código QR regenerado exitosamente");
+            return "redirect:/activities/" + activityId + "/sessions/" + sessionId + "/manage/qr";
+        } catch (SecurityException e) {
+            log.warn("User attempted to regenerate QR from different organization: activityId={}, sessionId={}",
+                    activityId, sessionId);
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/activities";
+        } catch (IllegalArgumentException e) {
+            log.error("Error regenerating QR: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/activities/" + activityId + "/sessions/" + sessionId + "/manage";
+        }
+    }
 }
+

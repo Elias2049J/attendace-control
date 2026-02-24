@@ -33,7 +33,7 @@ public class CalendarServiceImpl implements CalendarService {
                 })
                 .orElseGet(() -> {
                     log.debug("No organization context, getting all sessions from {} to {}", startDate, endDate);
-                    return sessionRepository.findBySessionDateBetween(startDate, endDate);
+                    return sessionRepository.findBySessionDateBetweenOrderBySessionDateAsc(startDate, endDate);
                 });
     }
 

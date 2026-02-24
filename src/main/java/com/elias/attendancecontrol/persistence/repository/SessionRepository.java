@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Optional;
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Long> {
-    List<Session> findByActivity(Activity activity);
-    List<Session> findBySessionDateBetween(LocalDate start, LocalDate end);
+    List<Session> findByActivityOrderBySessionDateAsc(Activity activity);
+    List<Session> findBySessionDateBetweenOrderBySessionDateAsc(LocalDate start, LocalDate end);
     List<Session> findByActivityAndSessionDateBetween(Activity activity, LocalDate start, LocalDate end);
     Optional<Session> findByActivityAndSessionDate(Activity activity, LocalDate date);
     boolean existsByActivityAndSessionDate(Activity activity, LocalDate date);
@@ -20,11 +20,11 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
     List<Session> findByActivityAndStatus(Activity activity, SessionStatus status);
     long countByActivityAndStatus(Activity activity, SessionStatus status);
 
-    @Query("SELECT s FROM Session s WHERE s.activity.organization.id = :orgId")
+    @Query("SELECT s FROM Session s WHERE s.activity.organization.id = :orgId ORDER BY s.sessionDate ASC")
     List<Session> findByActivityOrganizationId(@Param("orgId") Long organizationId);
 
     @Query("SELECT s FROM Session s WHERE s.sessionDate BETWEEN :startDate AND :endDate " +
-           "AND s.activity.organization.id = :orgId")
+           "AND s.activity.organization.id = :orgId ORDER BY s.sessionDate ASC")
     List<Session> findBySessionDateBetweenAndActivityOrganizationId(
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate,
@@ -35,4 +35,9 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
            "JOIN FETCH a.organization " +
            "WHERE s.id = :id")
     Optional<Session> findByIdWithActivityAndOrganization(@Param("id") Long id);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
+           "FROM Session s WHERE s.activity.id = :activityId " +
+           "AND s.status NOT IN ('CLOSED', 'CANCELLED')")
+    boolean existsActiveOrPlannedSessionsByActivityId(@Param("activityId") Long activityId);
 }

@@ -69,7 +69,7 @@
                                     <option value="">Seleccione un rol</option>
                                     <option th:each="roleOption : ${T(com.elias.attendancecontrol.model.entity.SystemRole).values()}"
                                             th:value="${roleOption}"
-                                            th:text="${roleOption.name()}"
+                                            th:text="${roleOption.displayName}"
                                             th:selected="${user.systemRole == roleOption}">Rol</option>
                                 </select>
                             </div>

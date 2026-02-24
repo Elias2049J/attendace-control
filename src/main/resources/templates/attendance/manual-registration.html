@@ -102,7 +102,7 @@
                                                        th:name="${'attendance_' + user.id}"
                                                        th:id="${'present_' + user.id}"
                                                        value="PRESENT"
-                                                       th:checked="${existingAttendanceMap.containsKey(user.id) and existingAttendanceMap.get(user.id).status.name() == 'PRESENT'}"
+                                                       th:checked="${existingAttendanceMap.containsKey(user.id) and existingAttendanceMap.get(user.id).status.isPresent()}"
                                                        style="width: 1.5rem; height: 1.5rem; cursor: pointer;">
                                             </div>
                                         </td>
@@ -113,7 +113,7 @@
                                                        th:name="${'attendance_' + user.id}"
                                                        th:id="${'late_' + user.id}"
                                                        value="LATE"
-                                                       th:checked="${existingAttendanceMap.containsKey(user.id) and existingAttendanceMap.get(user.id).status.name() == 'LATE'}"
+                                                       th:checked="${existingAttendanceMap.containsKey(user.id) and existingAttendanceMap.get(user.id).status.isLate()}"
                                                        style="width: 1.5rem; height: 1.5rem; cursor: pointer;">
                                             </div>
                                         </td>
@@ -124,7 +124,7 @@
                                                        th:name="${'attendance_' + user.id}"
                                                        th:id="${'absent_' + user.id}"
                                                        value="ABSENT"
-                                                       th:checked="${existingAttendanceMap.containsKey(user.id) and existingAttendanceMap.get(user.id).status.name() == 'ABSENT'}"
+                                                       th:checked="${existingAttendanceMap.containsKey(user.id) and existingAttendanceMap.get(user.id).status.isAbsent()}"
                                                        style="width: 1.5rem; height: 1.5rem; cursor: pointer;">
                                             </div>
                                         </td>
