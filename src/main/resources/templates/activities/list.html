@@ -232,12 +232,18 @@
         const searchInput = document.getElementById('searchActivities');
         function filterVisibleActivities() {
             const query = searchInput.value.toLowerCase().trim();
-            const visibleList = document.querySelector('.activities-list-group:not([style*="display: none"])');
+            const visibleLists = document.querySelectorAll('.activities-list-group');
+            let visibleList = null;
+            visibleLists.forEach(list => {
+                if (list.style.display !== 'none') {
+                    visibleList = list;
+                }
+            });
             if (!visibleList) return;
             const activityItems = visibleList.querySelectorAll('.activity-item');
             let visibleCount = 0;
             activityItems.forEach(item => {
-                const searchText = item.getAttribute('data-search');
+                const searchText = item.getAttribute('data-search') ? item.getAttribute('data-search').toLowerCase().trim() : '';
                 if (query === '' || searchText.includes(query)) {
                     item.style.display = '';
                     visibleCount++;

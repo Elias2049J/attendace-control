@@ -17,10 +17,12 @@ public class CalendarController {
     private final CalendarService calendarService;
     private final SessionService sessionService;
     private final ActivityService activityService;
+
     @GetMapping
-    public String getCalendarView(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-                                  Model model) {
+    public String getCalendarView(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            Model model) {
         log.debug("Getting calendar view from {} to {}", startDate, endDate);
         if (startDate == null) {
             startDate = LocalDate.now().withDayOfMonth(1);
@@ -35,6 +37,7 @@ public class CalendarController {
         model.addAttribute("activeMenu", "calendar");
         return "calendar/view";
     }
+
     @GetMapping("/activities")
     @ResponseBody
     public Object getActivitiesByDateRange(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,

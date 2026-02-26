@@ -62,7 +62,7 @@
                                             <td>
                                                 <span th:if="${member.organizationRole}"
                                                       class="badge"
-                                                      th:classappend="${member.organizationRole.isOwner() ? 'bg-danger' : (member.organizationRole.isAdmin() ? 'bg-warning': '')}"
+                                                      th:classappend="${member.organizationRole.isOwner() ? 'bg-danger' : (member.organizationRole.isAdmin() ? 'bg-warning': 'bg-primary bg-opacity-0')}"
                                                       th:text="${member.organizationRole.displayName}">
                                                     ORG_ROLE
                                                 </span>

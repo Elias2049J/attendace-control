@@ -19,4 +19,6 @@ public interface ActivityService {
     void changeStatus(Long activityId, ActivityStatus newStatus);
     List<Activity> searchActivities(String query, Long userId, String role);
     boolean isResponsible(Long activityId, Long userId);
+    long countAll();
+    List<Activity> findAllByUserResponsibleAndEnrolled(long userId);
 }
