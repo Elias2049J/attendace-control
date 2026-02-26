@@ -15,7 +15,7 @@
             <div class="row">
                 <div class="col-12">
                     <h2><i class="bi bi-shield-lock"></i> Administrar Organización</h2>
-                    <p class="text-muted">Panel exclusivo de System Admin - Gestión avanzada de la organización</p>
+                    <p class="text-muted">En esta sección puede configurar el estado y plan de la organización.</p>
                     <hr>
                 </div>
             </div>
@@ -32,8 +32,8 @@
             <div class="row justify-content-center">
                 <div class="col-lg-10">
                     <div class="card mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información de la Organización</h5>
+                        <div class="card-header bg-light text-dark">
+                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información General</h5>
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
@@ -49,7 +49,7 @@
                                     <strong><i class="bi bi-link-45deg"></i> Slug:</strong>
                                 </div>
                                 <div class="col-md-9">
-                                    <code th:text="${organization.slug}">slug</code>
+                                    <span th:text="${organization.slug}">slug</span>
                                 </div>
                             </div>
                             <div class="row mb-3" th:if="${organization.description}">
@@ -88,8 +88,8 @@
                     </div>
 
                     <div class="card mb-4">
-                        <div class="card-header bg-warning">
-                            <h5 class="mb-0"><i class="bi bi-gear"></i> Configuración Administrativa</h5>
+                        <div class="card-header bg-light text-dark">
+                            <h5 class="mb-0"><i class="bi bi-gear"></i> Configuración</h5>
                         </div>
                         <div class="card-body">
                             <form th:action="@{/organizations/{slug}/admin/update(slug=${organization.slug})}" method="post" th:object="${organization}">
@@ -99,10 +99,10 @@
                                 <div class="mb-4">
                                     <label class="form-label">Estado Actual:</label>
                                     <div class="mb-3">
-                                        <span th:if="${organization.active}" class="badge bg-success fs-6">
+                                        <span th:if="${organization.active}" class="badge bg-primary fs-6">
                                             <i class="bi bi-check-circle"></i> Activa
                                         </span>
-                                        <span th:unless="${organization.active}" class="badge bg-danger fs-6">
+                                        <span th:unless="${organization.active}" class="badge bg-secondary fs-6">
                                             <i class="bi bi-x-circle"></i> Inactiva
                                         </span>
                                     </div>

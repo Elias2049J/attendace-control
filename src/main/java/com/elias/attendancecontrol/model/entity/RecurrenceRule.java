@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 @Entity
@@ -43,10 +45,11 @@ public class RecurrenceRule {
     @Min(value = 0, message = "La tolerancia no puede ser negativa")
     @Column(name = "tolerance_minutes", nullable = false)
     private Integer toleranceMinutes;
+
     public long getDurationMinutes() {
         if (startTime == null || endTime == null) {
             return 0;
         }
-        return java.time.Duration.between(startTime, endTime).toMinutes();
+        return Duration.between(startTime, endTime).toMinutes();
     }
 }

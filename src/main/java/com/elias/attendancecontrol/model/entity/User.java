@@ -68,11 +68,21 @@ public class User {
     @OneToMany(mappedBy = "createdByUser", cascade = CascadeType.ALL)
     private List<ActivityIncident> activityIncidents = new ArrayList<>();
     @PrePersist
+
     protected void onCreate() {
         createdDate = LocalDateTime.now();
     }
 
     public String getFullname() {
         return name + " " + lastname;
+    }
+
+    public boolean isPasswordValid() {
+        return (password != null) && !password.isBlank()
+                && !password.equalsIgnoreCase("password");
+    }
+
+    public boolean hasDefaultPassword() {
+        return (password.equalsIgnoreCase("password"));
     }
 }

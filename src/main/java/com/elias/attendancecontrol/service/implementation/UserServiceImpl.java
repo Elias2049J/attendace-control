@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -62,23 +63,37 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("El correo electrónico ya existe");
         }
 
-        Organization organization = securityUtils.getCurrentOrganization().orElseThrow();
+        Optional<Organization> optionalOrganization = securityUtils.getCurrentOrganization();
+        Organization organization = optionalOrganization.orElse(null);
 
-        if (!organizationService.canAddUser(organization.getId())) {
-            throw new IllegalStateException(
-                    "Has alcanzado el límite de usuarios de tu plan (" +
-                            organization.getMaxUsers() + " usuarios)");
+        optionalOrganization.ifPresent(org -> {
+            if (!organizationService.canAddUser(org.getId())) {
+                throw new IllegalStateException(
+                        "Has alcanzado el límite de usuarios de tu plan (" +
+                                org.getMaxUsers() + " usuarios)"
+                );
+            }
+        });
+
+        if (user.hasDefaultPassword()) {
+            throw new IllegalArgumentException("La contraseña no puede ser: password");
         }
+        if (!user.isPasswordValid()) {
+            throw new IllegalArgumentException("La contraseña no es válida");
+        }
+
         user.setOrganization(organization);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = userRepository.save(user);
 
         logService.log(builder -> builder
-            .eventType("USER_CREATED")
-            .description("Usuario creado: " + savedUser.getUsername())
-            .user(savedUser)
-            .details("SystemRole: " + savedUser.getSystemRole())
+                .eventType("USER_CREATED")
+                .description("Usuario creado: " + savedUser.getUsername())
+                .user(savedUser)
+                .organization(organization)
+                .details("SystemRole: " + savedUser.getSystemRole())
         );
+
         log.info("User created successfully: {}", savedUser.getUsername());
         return savedUser;
     }
@@ -98,7 +113,7 @@ public class UserServiceImpl implements UserService {
             userToUpdate.setOrganizationRole(existingUser.getOrganizationRole());
         }
         existingUser.setActive(userToUpdate.getActive());
-        if (userToUpdate.getPassword() != null && !userToUpdate.getPassword().isEmpty()) {
+        if (userToUpdate.isPasswordValid()) {
             existingUser.setPassword(passwordEncoder.encode(userToUpdate.getPassword()));
         }
         User updatedUser = userRepository.save(existingUser);
@@ -119,9 +134,11 @@ public class UserServiceImpl implements UserService {
         user.setActive(false);
         userRepository.save(user);
         logService.log(builder -> builder
-            .eventType("USER_DEACTIVATED")
-            .description("Usuario desactivado: " + user.getUsername())
-            .user(user)
+                .eventType("USER_DEACTIVATED")
+                .user(securityUtils.getCurrentUser().orElse(null))
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
+                .description("Usuario desactivado: " + user.getUsername())
+                .details("ID: "+user.getId())
         );
         log.info("User deactivated successfully: {}", user.getUsername());
     }
@@ -178,5 +195,10 @@ public class UserServiceImpl implements UserService {
                     }
                 })
                 .orElse(Collections.emptyList());
+    }
+
+    @Override
+    public long countAllUsers() {
+        return userRepository.count();
     }
 }

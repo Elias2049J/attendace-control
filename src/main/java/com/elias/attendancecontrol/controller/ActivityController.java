@@ -78,8 +78,6 @@ public class ActivityController {
                                  BindingResult result,
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
-        log.debug("Creating new activity: {}", activity.getName());
-
         if (responsibleId == null) {
             model.addAttribute("error", "Debe seleccionar un responsable para la actividad");
             model.addAttribute("users", userService.listUsers());

@@ -13,4 +13,5 @@ public interface UserService {
     List<User> getActiveUsersBySystemRole(SystemRole systemRole);
     List<User> findByOrganizationId(Long organizationId);
     List<User> searchUsers(String query, SystemRole role, Boolean active);
+    long countAllUsers();
 }

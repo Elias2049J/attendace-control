@@ -33,21 +33,21 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="text-muted">Nombre</label>
-                                    <p class="h5" th:text="${user.name}">Nombre</p>
+                                    <p class="h5" th:text="${user.name.toLowerCase()}">Nombre</p>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="text-muted">Apellido</label>
-                                    <p class="h5" th:text="${user.lastname}">Apellido</p>
+                                    <p class="h5" th:text="${user.lastname.toLowerCase()}">Apellido</p>
                                 </div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-6" th:if="${user.organizationRole != null or isSysAdmin}">
                                     <label class="text-muted">Rol del Sistema</label>
-                                    <p><span class="badge bg-primary" th:text="${user.systemRole}">ROLE</span></p>
+                                    <p><span class="badge bg-primary" th:text="${user.systemRole.displayName}">ROLE</span></p>
                                 </div>
                                 <div class="col-md-6" th:if="${user.organizationRole != null}">
                                     <label class="text-muted">Rol en Organización</label>
-                                    <p><span class="badge bg-info" th:text="${user.organizationRole}">ORG_ROLE</span></p>
+                                    <p><span class="badge bg-info" th:text="${user.organizationRole.displayName}">ORG_ROLE</span></p>
                                 </div>
                             </div>
                             <div class="row mb-3" th:if="${user.organization != null}">

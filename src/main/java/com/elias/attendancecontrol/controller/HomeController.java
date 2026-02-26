@@ -1,10 +1,7 @@
 package com.elias.attendancecontrol.controller;
 import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.Activity;
-import com.elias.attendancecontrol.service.ActivityService;
-import com.elias.attendancecontrol.service.EnrollmentService;
-import com.elias.attendancecontrol.service.SessionService;
-import com.elias.attendancecontrol.service.UserService;
+import com.elias.attendancecontrol.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -20,6 +17,8 @@ public class HomeController {
     private final SessionService sessionService;
     private final EnrollmentService enrollmentService;
     private final SecurityUtils securityUtils;
+    private final OrganizationService organizationService;
+
     @GetMapping("/")
     public String home(Model model) {
         var userOptional = securityUtils.getCurrentUser();
@@ -38,17 +37,24 @@ public class HomeController {
         model.addAttribute("canManageUsers", securityUtils.canManageUsers());
         model.addAttribute("canManageActivities", securityUtils.canManageActivities());
         try {
-            model.addAttribute("totalUsers", userService.listUsers().size());
+
             List<Activity> activities = List.of();
-            int activitiesCount = 0;
+            long activitiesCount = 0;
+            long totalUsers = 0;
             List<Activity> enrolledActivities = enrollmentService.getActivitiesByUser(user.getId());
             List<Activity> responsibleActivities = activityService.findByResponsible(user.getId());
             if (securityUtils.isOrganizationOwnerOrAdmin()) {
                 activities = activityService.listActivitiesSorted();
                 activitiesCount = activities.size();
+                totalUsers = organizationService.getUserCount((Long) model.getAttribute("organizationId"));
             } else {
                 activitiesCount = enrolledActivities.size() + responsibleActivities.size();
+                totalUsers = userService.countAllUsers();
             }
+            if (securityUtils.isSystemAdmin()) {
+                activitiesCount = activityService.countAll();
+            }
+            model.addAttribute("totalUsers", totalUsers);
             model.addAttribute("activities", activities);
             model.addAttribute("responsibleActivities", responsibleActivities);
             model.addAttribute("enrolledActivities", enrolledActivities);

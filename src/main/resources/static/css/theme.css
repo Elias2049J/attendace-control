@@ -31,6 +31,7 @@
 /* Navbar */
 .navbar-dark,
 .bg-primary {
+    --bs-bg-opacity: 1;
     background-color: var(--mirae-primary-dark) !important;
 }
 

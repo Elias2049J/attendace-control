@@ -18,7 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,18 +43,13 @@ public class ActivityServiceImpl implements ActivityService {
     public Activity createActivity(Activity activity) {
         log.debug("Creating new activity: {}", activity.getName());
 
-        securityUtils.getCurrentOrganizationId().ifPresent(orgId -> {
-            Organization organization = organizationRepository.findById(orgId)
-                    .orElseThrow(() -> new IllegalArgumentException("Organización no encontrada"));
-
-            if (!organizationService.canAddActivity(orgId)) {
+        Organization organization = securityUtils.getCurrentOrganization().orElseThrow();
+            if (!organizationService.canAddActivity(organization.getId())) {
                 throw new IllegalStateException(
                         "Has alcanzado el límite de actividades de tu plan (" +
                         organization.getMaxActivities() + " actividades)");
             }
-
-            activity.setOrganization(organization);
-        });
+        activity.setOrganization(organization);
 
         Activity savedActivity = activityRepository.save(activity);
 
@@ -59,10 +58,12 @@ public class ActivityServiceImpl implements ActivityService {
                     .eventType("ACTIVITY_CREATED")
                     .description("Actividad creada: " + savedActivity.getName())
                     .user(currentUser)
+                    .organization(organization)
                     .details("ID: " + savedActivity.getId())
             ),
             () -> logService.log(builder -> builder
                     .eventType("ACTIVITY_CREATED")
+                    .organization(organization)
                     .description("Actividad creada: " + savedActivity.getName())
                     .details("ID: " + savedActivity.getId())
             )
@@ -94,6 +95,7 @@ public class ActivityServiceImpl implements ActivityService {
         log.info("Activity updated successfully: {}", id);
         return updatedActivity;
     }
+
     @Override
     @Transactional
     public void activateActivity(Long id) {
@@ -131,19 +133,17 @@ public class ActivityServiceImpl implements ActivityService {
     public List<Activity> listActivitiesSorted() {
         return securityUtils.getCurrentOrganizationId()
                 .map(activityRepository::findByOrganizationId)
-                .orElseGet(() -> {
-                    List<Activity> activities = activityRepository.findAll();
-                    activities.sort((a1, a2) -> {
-                        LocalDate date1 = a1.getRecurrenceRule() != null ? a1.getRecurrenceRule().getStartDate() : LocalDate.MAX;
-                        LocalDate date2 = a2.getRecurrenceRule() != null ? a2.getRecurrenceRule().getStartDate() : LocalDate.MAX;
-                        int dateCompare = date1.compareTo(date2);
-                        if (dateCompare != 0) {
-                            return dateCompare;
-                        }
-                        return Long.compare(a2.getId(), a1.getId());
-                    });
-                    return activities;
-                });
+                .orElseGet(() -> activityRepository.findAll()
+                        .stream()
+                        .sorted(Comparator.comparing((Activity a) ->
+                                        a.getRecurrenceRule() != null
+                                                ? a.getRecurrenceRule().getStartDate()
+                                                : LocalDate.MAX)
+                                .thenComparing(Activity::getId, Comparator.reverseOrder())
+                        )
+                        .toList()
+                );
+
     }
 
     @Override
@@ -162,7 +162,12 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     public List<Activity> findByResponsible(Long userId) {
-        return activityRepository.findByResponsibleId(userId);
+        return activityRepository.findByResponsibleId(userId)
+                .stream()
+                .sorted(Comparator.comparing(
+                        (Activity a) -> a.getRecurrenceRule().getStartDate())
+                        .thenComparing(Activity::getId, Comparator.reverseOrder())
+                ).toList();
     }
 
     @Override
@@ -329,5 +334,25 @@ public class ActivityServiceImpl implements ActivityService {
                 .orElseThrow()
                 .getResponsible().getId();
         return responsibleId == userId;
+    }
+
+    @Override
+    public long countAll() {
+        return activityRepository.count();
+    }
+
+    @Override
+    public List<Activity> findAllByUserResponsibleAndEnrolled(long userId) {
+        List<Activity> enrolled = enrollmentService.getActivitiesByUser(userId);
+        List<Activity> responsible = findByResponsible(userId);
+        Set<Activity> filteredByEnrolledAndResponsible = new LinkedHashSet<>();
+
+        filteredByEnrolledAndResponsible.addAll(enrolled);
+        filteredByEnrolledAndResponsible.addAll(responsible);
+        return filteredByEnrolledAndResponsible
+                .stream()
+                .sorted(Comparator.comparing((Activity a) -> a.getRecurrenceRule().getStartDate())
+                        .thenComparing(Activity::getId, Comparator.reverseOrder()))
+                .toList();
     }
 }

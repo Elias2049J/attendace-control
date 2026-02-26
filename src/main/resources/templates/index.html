@@ -8,7 +8,8 @@
             <h2><i class="bi bi-house-door"></i> Bienvenido, <span th:text="${username}">Usuario</span></h2>
             <p class="text-muted">Panel principal del sistema</p>
             <div class="row mt-4">
-                <div class="col-md-3 mb-3" th:if="${isOrgOwnerOrAdmin or isSystemAdmin}">
+                <a class="col-md-3 mb-3" th:if="${isSystemAdmin}"
+                     th:href="@{/users}">
                     <div class="card text-center shadow stat-card">
                         <div class="card-body">
                             <i class="bi bi-people fs-1 text-mirae-green"></i>
@@ -16,7 +17,17 @@
                             <p class="card-text display-4" th:text="${totalUsers ?: 0}">0</p>
                         </div>
                     </div>
-                </div>
+                </a>
+                <a class="col-md-3 mb-3" th:if="${isOrgOwnerOrAdmin}"
+                     th:href="@{/organizations/{slug}/members(slug=${currentUser?.organization?.slug})}">
+                    <div class="card text-center shadow stat-card">
+                        <div class="card-body">
+                            <i class="bi bi-people fs-1 text-mirae-green"></i>
+                            <h5 class="card-title mt-3">Miembros</h5>
+                            <p class="card-text display-4" th:text="${totalUsers ?: 0}">0</p>
+                        </div>
+                    </div>
+                </a>
                 <div class="col-md-3 mb-3">
                     <div class="card text-center shadow stat-card">
                         <div class="card-body">

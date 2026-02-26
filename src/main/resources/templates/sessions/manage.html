@@ -14,7 +14,13 @@
                     <li class="breadcrumb-item active" aria-current="page">Gestión de Sesión</li>
                 </ol>
             </nav>
-
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2><i class="bi bi-calendar-event"></i> Gestión de Sesión</h2>
+                    <p class="text-muted">Administra la información de la sesión</p>
+                    <hr>
+                </div>
+            </div>
             <div class="mb-3">
                 <a th:href="@{/activities/{id}/sessions(id=${activity.id})}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Volver
@@ -253,5 +259,4 @@
     <div th:replace="~{layout :: scripts}"></div>
 </body>
 </html>
-
 

@@ -78,7 +78,12 @@ public class SecurityConfig {
                 .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
                 .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
                 .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+                    .policyDirectives("default-src 'self'; " +
+                            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                            "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; " +
+                            "img-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                            "connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;")
                 )
             );
         return http.build();
