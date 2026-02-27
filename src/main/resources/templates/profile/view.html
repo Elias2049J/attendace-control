@@ -32,21 +32,21 @@
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="text-muted">Nombre</label>
-                                    <p class="h5" th:text="${user.name.toLowerCase()}">Nombre</p>
+                                    <label class="text-muted">Nombres</label>
+                                    <p class="h5" th:text="${user.name.toUpperCase()}">Nombre</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="text-muted">Apellido</label>
-                                    <p class="h5" th:text="${user.lastname.toLowerCase()}">Apellido</p>
+                                    <label class="text-muted">Apellidos</label>
+                                    <p class="h5" th:text="${user.lastname.toUpperCase()}">Apellido</p>
                                 </div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-md-6" th:if="${user.organizationRole != null or isSysAdmin}">
+                                <div class="col-md-6" th:if="${user.organizationRole == null or isSysAdmin == true}">
                                     <label class="text-muted">Rol del Sistema</label>
                                     <p><span class="badge bg-primary" th:text="${user.systemRole.displayName}">ROLE</span></p>
                                 </div>
                                 <div class="col-md-6" th:if="${user.organizationRole != null}">
-                                    <label class="text-muted">Rol en Organización</label>
+                                    <label class="text-muted">Rol en mi Organización</label>
                                     <p><span class="badge bg-info" th:text="${user.organizationRole.displayName}">ORG_ROLE</span></p>
                                 </div>
                             </div>
@@ -68,6 +68,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <div th:if="${isOrgOwner == true or isOrgAdmin == true}" class="card mt-4">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-info-circle"></i> Información sobre los roles</h6>
+                            <ul class="mb-0 small">
+                                <li><strong>Administrador:</strong> puede gestionar miembros, actividades y asistencias</li>
+                                <li><strong>Miembro:</strong> puede registrar asistencia y ver sus propias actividades</li>
+                            </ul>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

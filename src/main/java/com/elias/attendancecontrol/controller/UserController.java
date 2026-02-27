@@ -1,6 +1,5 @@
 package com.elias.attendancecontrol.controller;
 import com.elias.attendancecontrol.config.SecurityUtils;
-import com.elias.attendancecontrol.model.entity.OrganizationRole;
 import com.elias.attendancecontrol.model.entity.SystemRole;
 import com.elias.attendancecontrol.model.entity.User;
 import com.elias.attendancecontrol.service.UserService;
@@ -28,6 +27,7 @@ public class UserController {
     public String listUsers(Model model) {
         log.debug("Listing all users");
         model.addAttribute("users", userService.listUsers());
+        model.addAttribute("activeMenu", "users");
         return "users/list";
     }
 
@@ -36,6 +36,7 @@ public class UserController {
     public String showCreateForm(Model model) {
         log.debug("Showing user creation form");
         model.addAttribute("user", new User());
+        model.addAttribute("activeMenu", "users");
         prepareFormModel(model);
         return "users/form";
     }
@@ -47,12 +48,14 @@ public class UserController {
                             Model model,
                             RedirectAttributes redirectAttributes) {
         if (result.hasErrors()) {
+            model.addAttribute("user", user);
             prepareFormModel(model);
             return "users/form";
         }
         try {
-            if (user.getOrganizationRole().isOwner()) {
+            if (user.getOrganizationRole() != null && user.getOrganizationRole().isOwner()) {
                 model.addAttribute("error", "No tiene permisos para crear propietarios");
+                model.addAttribute("user", user);
                 prepareFormModel(model);
                 return "users/form";
             }
@@ -62,6 +65,7 @@ public class UserController {
             return "redirect:/users";
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage());
+            model.addAttribute("user", user);
             prepareFormModel(model);
             return "users/form";
         }
@@ -81,6 +85,7 @@ public class UserController {
             }
             model.addAttribute("user", targetUser);
             model.addAttribute("isEdit", true);
+            model.addAttribute("activeMenu", "users");
             prepareFormModel(model);
             return "users/form";
         } catch (IllegalArgumentException e) {
@@ -92,7 +97,7 @@ public class UserController {
     @PostMapping("/{id}")
     @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ADMIN')")
     public String updateUser(@PathVariable Long id,
-                            @Valid @ModelAttribute User userToUpdate,
+                            @ModelAttribute("user") User userToUpdate,
                             BindingResult result,
                             Model model,
                             RedirectAttributes redirectAttributes) {
@@ -105,7 +110,26 @@ public class UserController {
                 return "redirect:/users";
             }
 
-            if (result.hasErrors()) {
+            boolean hasError = false;
+            if (userToUpdate.getName() == null || userToUpdate.getName().isBlank()) {
+                result.rejectValue("name", "field.required", "El nombre es obligatorio");
+                hasError = true;
+            }
+            if (userToUpdate.getLastname() == null || userToUpdate.getLastname().isBlank()) {
+                result.rejectValue("lastname", "field.required", "El apellido es obligatorio");
+                hasError = true;
+            }
+            if (userToUpdate.getEmail() == null || userToUpdate.getEmail().isBlank()) {
+                result.rejectValue("email", "field.required", "El email es obligatorio");
+                hasError = true;
+            } else if (!userToUpdate.getEmail().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+                result.rejectValue("email", "field.invalid", "El email no tiene un formato válido");
+                hasError = true;
+            }
+
+            if (hasError) {
+                userToUpdate.setId(id);
+                model.addAttribute("user", userToUpdate);
                 model.addAttribute("isEdit", true);
                 prepareFormModel(model);
                 return "users/form";
@@ -115,7 +139,17 @@ public class UserController {
             redirectAttributes.addFlashAttribute("success", "Usuario actualizado exitosamente");
             return "redirect:/users";
         } catch (IllegalArgumentException e) {
+            userToUpdate.setId(id);
             model.addAttribute("error", e.getMessage());
+            model.addAttribute("user", userToUpdate);
+            model.addAttribute("isEdit", true);
+            prepareFormModel(model);
+            return "users/form";
+        } catch (Exception e) {
+            log.error("Unexpected error updating user {}: {}", id, e.getMessage(), e);
+            userToUpdate.setId(id);
+            model.addAttribute("error", "Error inesperado al actualizar el usuario: " + e.getMessage());
+            model.addAttribute("user", userToUpdate);
             model.addAttribute("isEdit", true);
             prepareFormModel(model);
             return "users/form";
@@ -148,11 +182,6 @@ public class UserController {
             model.addAttribute("systemRoles", SystemRole.values());
         } else {
             model.addAttribute("systemRoles", new SystemRole[]{SystemRole.USER});
-        }
-        if (securityUtils.isOrganizationOwner()) {
-            model.addAttribute("orgRoles", OrganizationRole.values());
-        } else if (securityUtils.isOrganizationAdmin()) {
-            model.addAttribute("orgRoles", new OrganizationRole[]{OrganizationRole.MEMBER});
         }
     }
 }

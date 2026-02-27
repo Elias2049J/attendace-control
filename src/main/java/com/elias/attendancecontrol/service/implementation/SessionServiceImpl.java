@@ -49,6 +49,7 @@ public class SessionServiceImpl implements SessionService {
                 .description("Sesión activada: " + session.getId())
                 .session(session)
                 .details("Fecha: " + session.getSessionDate())
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
         );
         log.info("Session activated successfully: {}", id);
         return savedSession;
@@ -333,6 +334,7 @@ public class SessionServiceImpl implements SessionService {
                 .eventType("ACTIVITY_AUTO_COMPLETED")
                 .description("Actividad completada automáticamente: " + activity.getName())
                 .details("Todas las sesiones han sido cerradas o canceladas.")
+                    .organization(securityUtils.getCurrentOrganization().orElse(null))
             );
 
             log.info("Activity {} automatically completed", activity.getId());

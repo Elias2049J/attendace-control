@@ -29,12 +29,14 @@ public class ActivityController {
     private final SessionService sessionService;
     private final AttendanceService attendanceService;
     private final EnrollmentService enrollmentService;
-    private final RecurrenceService recurrenceService;
     private final TokenService tokenService;
     private final SecurityUtils securityUtils;
 
     @Value("${app.base-url}")
     private String baseUrl;
+
+    @Value("${qr.duration-minutes}")
+    private int qrDurationMinutes;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
@@ -86,7 +88,6 @@ public class ActivityController {
             model.addAttribute("activeMenu", "activities");
             return "activities/form";
         }
-
         if (result.hasErrors()) {
             model.addAttribute("users", userService.listUsers());
             model.addAttribute("recurrenceTypes", RecurrenceType.values());
@@ -95,23 +96,18 @@ public class ActivityController {
             return "activities/form";
         }
         try {
-            User responsible = userService.getUserById(responsibleId);
-            activity.setResponsible(responsible);
+            activity.setResponsible(userService.getUserById(responsibleId));
 
-            Activity savedActivity = activityService.createActivity(activity);
-
-            RecurrenceType recurrenceType = RecurrenceType.valueOf(recurrenceTypeStr);
             RecurrenceRule recurrenceRule = new RecurrenceRule();
-            recurrenceRule.setRecurrenceType(recurrenceType);
+            recurrenceRule.setRecurrenceType(RecurrenceType.valueOf(recurrenceTypeStr));
             recurrenceRule.setStartDate(startDate);
             recurrenceRule.setEndDate(endDate);
             recurrenceRule.setDaysOfWeek(daysOfWeek);
             recurrenceRule.setStartTime(startTime);
             recurrenceRule.setEndTime(endTime);
             recurrenceRule.setToleranceMinutes(toleranceMinutes);
-            recurrenceRule.setActivity(savedActivity);
 
-            recurrenceService.configureRecurrence(savedActivity.getId(), recurrenceRule);
+            activityService.createActivityWithRecurrence(activity, recurrenceRule);
 
             redirectAttributes.addFlashAttribute("success", "Actividad creada exitosamente");
             return "redirect:/activities";
@@ -169,7 +165,6 @@ public class ActivityController {
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
         log.debug("Updating activity: {}", id);
-
         if (result.hasErrors()) {
             model.addAttribute("users", userService.listUsers());
             model.addAttribute("recurrenceTypes", RecurrenceType.values());
@@ -177,28 +172,19 @@ public class ActivityController {
             model.addAttribute("isEdit", true);
             return "activities/form";
         }
-
         try {
             Activity existingActivity = activityService.getActivityById(id);
             if (existingActivity.getOrganization() != null) {
                 securityUtils.validateResourceOwnership(existingActivity.getOrganization().getId());
             }
             if (responsibleId != null) {
-                User responsible = userService.getUserById(responsibleId);
-                activity.setResponsible(responsible);
+                activity.setResponsible(userService.getUserById(responsibleId));
             }
 
-            activityService.updateActivity(id, activity);
-
-            RecurrenceType recurrenceType = RecurrenceType.valueOf(recurrenceTypeStr);
-            RecurrenceRule recurrenceRule;
-            if (existingActivity.getRecurrenceRule() != null) {
-                recurrenceRule = existingActivity.getRecurrenceRule();
-            } else {
-                recurrenceRule = new RecurrenceRule();
-                recurrenceRule.setActivity(existingActivity);
-            }
-            recurrenceRule.setRecurrenceType(recurrenceType);
+            RecurrenceRule recurrenceRule = existingActivity.getRecurrenceRule() != null
+                    ? existingActivity.getRecurrenceRule()
+                    : new RecurrenceRule();
+            recurrenceRule.setRecurrenceType(RecurrenceType.valueOf(recurrenceTypeStr));
             recurrenceRule.setStartDate(startDate);
             recurrenceRule.setEndDate(endDate);
             recurrenceRule.setDaysOfWeek(daysOfWeek);
@@ -206,11 +192,7 @@ public class ActivityController {
             recurrenceRule.setEndTime(endTime);
             recurrenceRule.setToleranceMinutes(toleranceMinutes);
 
-            if (existingActivity.getRecurrenceRule() != null) {
-                recurrenceService.updateRecurrence(existingActivity.getRecurrenceRule().getId(), recurrenceRule);
-            } else {
-                recurrenceService.configureRecurrence(id, recurrenceRule);
-            }
+            activityService.updateActivityWithRecurrence(id, activity, recurrenceRule);
 
             redirectAttributes.addFlashAttribute("success", "Actividad actualizada exitosamente");
             return "redirect:/activities";
@@ -484,7 +466,7 @@ public class ActivityController {
             model.addAllAttributes(qrData);
             model.addAttribute("activity", activity);
             model.addAttribute("sessionEntity", sessionEntity);
-
+            model.addAttribute("qrDurationMinutes", qrDurationMinutes);
             return "qr/view";
         } catch (SecurityException e) {
             log.warn("User attempted to access QR from different organization: activityId={}, sessionId={}",

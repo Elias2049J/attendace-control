@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{layout :: head('Calendario')}"></head>
+<head th:replace="~{layout :: head('Calendario')}">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <style>
+        .fc-daygrid-day-frame, .fc-daygrid-day {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .fc-daygrid-day-frame:hover, .fc-daygrid-day:hover {
+            background: rgba(38, 166, 154, 0.08);
+        }
+    </style>
+</head>
 <body class="d-flex flex-column min-vh-100">
     <div th:replace="~{layout :: sidebar}"></div>
     <main class="flex-grow-1" id="main-content"><div class="container-fluid py-4">
@@ -11,37 +22,159 @@
             </ol>
         </nav>
         <div class="row">
-            <div class="col-12">
-                <div class="d-flex align-items-center mb-3">
-                    <div>
-                        <h2 class="mb-1"><i class="bi bi-calendar3"></i> Calendario de Sesiones</h2>
-                        <p class="text-muted mb-0">Visualiza y gestiona todas las sesiones programadas</p>
+            <div class="col-12 d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="mb-1"><i class="bi bi-calendar3"></i> Calendario de Sesiones</h2>
+                    <p class="text-muted mb-0">Visualiza y gestiona todas las sesiones programadas</p>
+                </div>
+            </div>
+            <div class="col-12"><hr class="mb-4"></div>
+        </div>
+        <div class="row d-none d-md-flex">
+            <div class="col-md-9">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <form id="calendar-filter-form" method="get" th:action="@{/calendar}" class="row g-3 align-items-end">
+                                    <div class="col-md-5">
+                                        <label for="startDate" class="form-label fw-semibold">
+                                            <i class="bi bi-calendar-event"></i> Fecha Inicio
+                                        </label>
+                                        <input type="date" class="form-control form-control-lg" id="startDate" name="startDate"
+                                               th:value="${startDate}">
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label for="endDate" class="form-label fw-semibold">
+                                            <i class="bi bi-calendar-event"></i> Fecha Fin
+                                        </label>
+                                        <input type="date" class="form-control form-control-lg" id="endDate" name="endDate"
+                                               th:value="${endDate}">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary btn-lg w-100" id="filter-btn">
+                                            <i class="bi bi-search"></i> Filtrar
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <hr class="mb-4">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom">
+                                <h5 class="mb-0 fw-bold text-primary">
+                                    <i class="bi bi-calendar-week"></i> Sesiones del Período
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-check-circle-fill"></i> <span th:text="${success}">Operación exitosa</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}">Error</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+
+                                <div th:if="${#lists.isEmpty(sessions)}" class="text-center text-muted py-5">
+                                    <i class="bi bi-calendar-x" style="font-size: 4rem; opacity: 0.3;"></i>
+                                    <p class="mt-3 fs-5">No hay sesiones en este rango de fechas</p>
+                                </div>
+
+                                <div th:unless="${#lists.isEmpty(sessions)}" class="calendar-sessions">
+                                    <div th:each="sessionEntity : ${sessions}" class="session-card-wrapper mb-3">
+                                        <div class="card border session-card shadow-sm">
+                                            <div class="card-body p-0">
+                                                <div class="row g-0">
+                                                    <div class="col-auto d-flex flex-column align-items-center justify-content-center border-end px-3 py-3" style="min-width: 90px;">
+                                                        <span class="text-uppercase fw-bold text-primary" style="font-size: 0.875rem; letter-spacing: 0.5px;"
+                                                              th:text="${#temporals.format(sessionEntity.sessionDate, 'EEE', #locale).toUpperCase()}">LUN</span>
+                                                        <span class="fw-bold" style="font-size: 2.5rem; line-height: 1;"
+                                                              th:text="${#temporals.format(sessionEntity.sessionDate, 'd')}">8</span>
+                                                        <span class="text-muted small"
+                                                              th:text="${#temporals.format(sessionEntity.sessionDate, 'MMM', #locale)}">Ene</span>
+                                                    </div>
+
+                                                    <div class="col">
+                                                        <div class="p-3">
+                                                            <div class="d-flex flex-column gap-2">
+                                                                <div>
+                                                                    <span class="d-inline-flex align-items-center px-2 py-1 rounded text-uppercase small fw-semibold"
+                                                                          th:classappend="${sessionEntity.status.isPlanned()} ? 'text-primary' : (${sessionEntity.status.isActive()} ? 'text-success' : (${sessionEntity.status.isClosed()} ? 'text-secondary' : 'text-danger'))"
+                                                                          style="font-size: 0.7rem; letter-spacing: 0.5px; background-color: rgba(var(--bs-primary-rgb), 0.1);"
+                                                                          th:style="${sessionEntity.status.isPlanned()} ? 'background-color: rgba(13, 110, 253, 0.1);' : (${sessionEntity.status.isActive()} ? 'background-color: rgba(25, 135, 84, 0.1);' : (${sessionEntity.status.isClosed()} ? 'background-color: rgba(108, 117, 125, 0.1);' : 'background-color: rgba(220, 53, 69, 0.1);'))">
+                                                                        <span th:text="${sessionEntity.status.displayName}">Programada</span>
+                                                                    </span>
+                                                                </div>
+
+                                                                <div>
+                                                                    <h6 class="mb-1 fw-bold d-flex align-items-start">
+                                                                        <span class="d-inline-block rounded-circle me-2 flex-shrink-0"
+                                                                              style="width: 8px; height: 8px; margin-top: 6px; background-color: var(--bs-primary);"></span>
+                                                                        <span th:text="${sessionEntity.activity.name}">Nombre Actividad</span>
+                                                                    </h6>
+                                                                    <p class="mb-2 text-muted small ps-4" th:text="${sessionEntity.activity.description}">Descripción</p>
+                                                                </div>
+
+                                                                <div class="d-flex flex-wrap gap-3 ps-4 small">
+                                                                    <span class="text-muted d-flex align-items-center">
+                                                                        <i class="bi bi-clock me-1"></i>
+                                                                        <span th:text="${#temporals.format(sessionEntity.startTime, 'hh:mm a')} + ' - ' + ${#temporals.format(sessionEntity.endTime, 'hh:mm a')}">08:00 AM - 10:00 AM</span>
+                                                                    </span>
+                                                                    <span class="text-muted d-flex align-items-center">
+                                                                        <i class="bi bi-hourglass-split me-1"></i>
+                                                                        <span>Tolerancia: <span th:text="${sessionEntity.toleranceMinutes}">15</span> min</span>
+                                                                    </span>
+                                                                    <span class="text-muted d-flex align-items-center"
+                                                                          th:if="${sessionEntity.activity != null and sessionEntity.activity.responsible != null}">
+                                                                        <i class="bi bi-person-circle me-1"></i>
+                                                                        <span th:text="${sessionEntity.activity.responsible.name + ' ' + sessionEntity.activity.responsible.lastname}">Responsable</span>
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div id="mini-calendar-container" class="sticky-top" style="top: 90px;">
+                    <div id="mini-calendar"></div>
+                </div>
             </div>
         </div>
-        <div class="row mb-4">
-            <div class="col-md-12">
+        <!-- MOBILE: todo en una sola columna, minicalendario debajo de la tabla -->
+        <div class="row d-md-none">
+            <div class="col-12 mb-4">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
-                        <form method="get" th:action="@{/calendar}" class="row g-3 align-items-end">
-                            <div class="col-md-5">
-                                <label for="startDate" class="form-label fw-semibold">
+                        <form id="calendar-filter-form-mobile" method="get" th:action="@{/calendar}" class="row g-3 align-items-end">
+                            <div class="col-12">
+                                <label for="startDateMobile" class="form-label fw-semibold">
                                     <i class="bi bi-calendar-event"></i> Fecha Inicio
                                 </label>
-                                <input type="date" class="form-control form-control-lg" id="startDate" name="startDate"
+                                <input type="date" class="form-control form-control-lg" id="startDateMobile" name="startDate"
                                        th:value="${startDate}">
                             </div>
-                            <div class="col-md-5">
-                                <label for="endDate" class="form-label fw-semibold">
+                            <div class="col-12">
+                                <label for="endDateMobile" class="form-label fw-semibold">
                                     <i class="bi bi-calendar-event"></i> Fecha Fin
                                 </label>
-                                <input type="date" class="form-control form-control-lg" id="endDate" name="endDate"
+                                <input type="date" class="form-control form-control-lg" id="endDateMobile" name="endDate"
                                        th:value="${endDate}">
                             </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-lg w-100" id="filter-btn-mobile">
                                     <i class="bi bi-search"></i> Filtrar
                                 </button>
                             </div>
@@ -49,9 +182,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-md-12">
+            <div class="col-12 mb-4">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom">
                         <h5 class="mb-0 fw-bold text-primary">
@@ -67,12 +198,10 @@
                             <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}">Error</span>
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
-
                         <div th:if="${#lists.isEmpty(sessions)}" class="text-center text-muted py-5">
                             <i class="bi bi-calendar-x" style="font-size: 4rem; opacity: 0.3;"></i>
                             <p class="mt-3 fs-5">No hay sesiones en este rango de fechas</p>
                         </div>
-
                         <div th:unless="${#lists.isEmpty(sessions)}" class="calendar-sessions">
                             <div th:each="sessionEntity : ${sessions}" class="session-card-wrapper mb-3">
                                 <div class="card border session-card shadow-sm">
@@ -86,7 +215,6 @@
                                                 <span class="text-muted small"
                                                       th:text="${#temporals.format(sessionEntity.sessionDate, 'MMM', #locale)}">Ene</span>
                                             </div>
-
                                             <div class="col">
                                                 <div class="p-3">
                                                     <div class="d-flex flex-column gap-2">
@@ -98,7 +226,6 @@
                                                                 <span th:text="${sessionEntity.status.displayName}">Programada</span>
                                                             </span>
                                                         </div>
-
                                                         <div>
                                                             <h6 class="mb-1 fw-bold d-flex align-items-start">
                                                                 <span class="d-inline-block rounded-circle me-2 flex-shrink-0"
@@ -107,7 +234,6 @@
                                                             </h6>
                                                             <p class="mb-2 text-muted small ps-4" th:text="${sessionEntity.activity.description}">Descripción</p>
                                                         </div>
-
                                                         <div class="d-flex flex-wrap gap-3 ps-4 small">
                                                             <span class="text-muted d-flex align-items-center">
                                                                 <i class="bi bi-clock me-1"></i>
@@ -134,8 +260,184 @@
                     </div>
                 </div>
             </div>
+            <div class="col-12">
+                <div id="mini-calendar-container-mobile">
+                    <div id="mini-calendar-mobile"></div>
+                </div>
+            </div>
         </div>
     </div></main><div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+    <script th:inline="javascript">
+        let calendar;
+        let lastView = 'dayGridMonth';
+        document.addEventListener('DOMContentLoaded', function() {
+            function syncDateInputs(prefix = '') {
+                const startId = prefix + 'startDate';
+                const endId = prefix + 'endDate';
+                const startInput = document.getElementById(startId);
+                const endInput = document.getElementById(endId);
+                if (startInput && localStorage.getItem(startId)) startInput.value = localStorage.getItem(startId);
+                if (endInput && localStorage.getItem(endId)) endInput.value = localStorage.getItem(endId);
+                if (startInput) startInput.addEventListener('change', () => localStorage.setItem(startId, startInput.value));
+                if (endInput) endInput.addEventListener('change', () => localStorage.setItem(endId, endInput.value));
+            }
+            syncDateInputs();
+            syncDateInputs('Mobile');
+
+            function isSameDay(d1, d2) {
+                return d1.getFullYear() === d2.getFullYear() &&
+                       d1.getMonth() === d2.getMonth() &&
+                       d1.getDate() === d2.getDate();
+            }
+
+            const calendarEl = document.getElementById('mini-calendar');
+            if (calendarEl) {
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    height: 320,
+                    headerToolbar: {
+                        left: 'prev',
+                        center: 'title',
+                        right: 'next'
+                    },
+                    events(fetchInfo, successCallback, failureCallback) {
+                        const startDate = document.getElementById('startDate')?.value;
+                        const endDate = document.getElementById('endDate')?.value;
+                        let url = '/calendar/events';
+                        if (startDate && endDate) url += `?startDate=${startDate}&endDate=${endDate}`;
+                        fetch(url)
+                            .then(r => r.json())
+                            .then(successCallback)
+                            .catch(failureCallback);
+                    },
+                    dateClick(info) {
+                        const events = calendar.getEvents().filter(ev => isSameDay(ev.start, info.date));
+                        if (events.length > 0) {
+                            lastView = calendar.view.type;
+                            calendar.changeView('timeGridDay', info.dateStr);
+                            mostrarBotonVolver();
+                        }
+                    },
+                    views: {
+                        timeGridDay: {
+                            type: 'timeGrid',
+                            duration: { days: 1 },
+                            buttonText: 'Día',
+                            allDaySlot: false
+                        }
+                    },
+                    editable: false
+                });
+                calendar.render();
+                addGridDayClickHandlers(calendarEl, calendar);
+            }
+
+            const calendarElMobile = document.getElementById('mini-calendar-mobile');
+            if (calendarElMobile) {
+                const calendarMobile = new FullCalendar.Calendar(calendarElMobile, {
+                    initialView: 'dayGridMonth',
+                    height: 320,
+                    headerToolbar: {
+                        left: 'prev',
+                        center: 'title',
+                        right: 'next'
+                    },
+                    events(fetchInfo, successCallback, failureCallback) {
+                        const startDate = document.getElementById('startDateMobile')?.value;
+                        const endDate = document.getElementById('endDateMobile')?.value;
+                        let url = '/calendar/events';
+                        if (startDate && endDate) url += `?startDate=${startDate}&endDate=${endDate}`;
+                        fetch(url)
+                            .then( r => r.json())
+                            .then(successCallback)
+                            .catch(failureCallback);
+                    },
+                    dateClick(info) {
+                        const events = calendarMobile.getEvents().filter(ev => isSameDay(ev.start, info.date));
+                        if (events.length > 0) {
+                            calendarMobile.changeView('timeGridDay', info.dateStr);
+                            mostrarBotonVolverMobile(calendarMobile);
+                        }
+                    },
+                    views: {
+                        timeGridDay: {
+                            type: 'timeGrid',
+                            duration: { days: 1 },
+                            buttonText: 'Día',
+                            allDaySlot: false
+                        }
+                    },
+                    editable: false
+                });
+                calendarMobile.render();
+                addGridDayClickHandlers(calendarElMobile, calendarMobile);
+            }
+
+            function mostrarBotonVolver() {
+                let btn = document.getElementById('btn-back-month');
+                if (!btn) {
+                    btn = document.createElement('button');
+                    btn.id = 'btn-back-month';
+                    btn.className = 'btn btn-outline-primary btn-sm mb-2';
+                    btn.innerHTML = '<i class="bi bi-arrow-left"></i> Volver a mes';
+                    btn.onclick = function() {
+                        calendar.changeView('dayGridMonth');
+                        btn.remove();
+                    };
+                    calendarEl.parentNode.insertBefore(btn, calendarEl);
+                }
+            }
+            function mostrarBotonVolverMobile(calendarMobile) {
+                let btn = document.getElementById('btn-back-month-mobile');
+                if (!btn) {
+                    btn = document.createElement('button');
+                    btn.id = 'btn-back-month-mobile';
+                    btn.className = 'btn btn-outline-primary btn-sm mb-2 w-100';
+                    btn.innerHTML = '<i class="bi bi-arrow-left"></i> Volver a mes';
+                    btn.onclick = function() {
+                        calendarMobile.changeView('dayGridMonth');
+                        btn.remove();
+                    };
+                    calendarElMobile.parentNode.insertBefore(btn, calendarElMobile);
+                }
+            }
+
+            const filterForm = document.getElementById('calendar-filter-form');
+            if (filterForm) {
+                filterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (calendar) calendar.refetchEvents();
+                    filterForm.submit();
+                });
+            }
+            const filterFormMobile = document.getElementById('calendar-filter-form-mobile');
+            if (filterFormMobile) {
+                filterFormMobile.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (calendarElMobile && calendarElMobile._fullCalendar) {
+                        calendarElMobile._fullCalendar.refetchEvents();
+                    }
+                    filterFormMobile.submit();
+                });
+            }
+        });
+        function addGridDayClickHandlers(calendarEl, calendarInstance) {
+            calendarEl.addEventListener('click', function(e) {
+                let cell = e.target.closest('.fc-daygrid-day, .fc-daygrid-day-frame');
+                if (!cell) return;
+                const dateStr = cell.getAttribute('data-date') || cell.parentElement?.getAttribute('data-date');
+                if (!dateStr) return;
+                const date = new Date(dateStr);
+                const events = calendarInstance.getEvents().filter(ev => isSameDay(ev.start, date));
+                if (events.length > 0 && calendarInstance.view.type === 'dayGridMonth') {
+                    calendarInstance.changeView('timeGridDay', dateStr);
+                    if (calendarInstance === calendar) showBackButton();
+                    else showToggleMobileButton(calendarInstance);
+                }
+            }, { passive: true });
+        }
+    </script>
 </body>
 </html>

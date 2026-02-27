@@ -1,7 +1,7 @@
 package com.elias.attendancecontrol.service.implementation;
+import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.Activity;
 import com.elias.attendancecontrol.model.entity.RecurrenceRule;
-import com.elias.attendancecontrol.model.entity.RecurrenceType;
 import com.elias.attendancecontrol.persistence.repository.ActivityRepository;
 import com.elias.attendancecontrol.persistence.repository.RecurrenceRuleRepository;
 import com.elias.attendancecontrol.service.LogService;
@@ -10,7 +10,6 @@ import com.elias.attendancecontrol.service.SessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -20,9 +19,9 @@ public class RecurrenceServiceImpl implements RecurrenceService {
     private final ActivityRepository activityRepository;
     private final SessionService sessionService;
     private final LogService logService;
+    private final SecurityUtils securityUtils;
 
     @Override
-    @Transactional
     public void generateSessionsForActivity(Long activityId) {
         log.debug("Generating sessions for activity: {}", activityId);
         Activity activity = activityRepository.findById(activityId)
@@ -44,7 +43,6 @@ public class RecurrenceServiceImpl implements RecurrenceService {
     }
 
     @Override
-    @Transactional
     public RecurrenceRule configureRecurrence(Long activityId, RecurrenceRule recurrenceRule) {
         log.debug("Configuring recurrence for activity: {}", activityId);
         Activity activity = activityRepository.findById(activityId)
@@ -76,7 +74,6 @@ public class RecurrenceServiceImpl implements RecurrenceService {
     }
 
     @Override
-    @Transactional
     public RecurrenceRule updateRecurrence(Long id, RecurrenceRule recurrenceRule) {
         log.debug("Updating recurrence rule: {}", id);
         RecurrenceRule existingRule = recurrenceRuleRepository.findById(id)
@@ -100,6 +97,7 @@ public class RecurrenceServiceImpl implements RecurrenceService {
                 .eventType("RECURRENCE_UPDATED")
                 .description("Regla de recurrencia actualizada")
                 .details("ID: " + id + ", Tipo: " + updatedRule.getRecurrenceType())
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
         );
 
         log.info("Recurrence rule updated: {}", id);

@@ -2,7 +2,11 @@ package com.elias.attendancecontrol.service.implementation;
 import com.elias.attendancecontrol.config.OrganizationPlanProperties;
 import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.dto.OrganizationStatsDTO;
-import com.elias.attendancecontrol.model.entity.*;
+import com.elias.attendancecontrol.model.entity.Organization;
+import com.elias.attendancecontrol.model.entity.OrganizationRole;
+import com.elias.attendancecontrol.model.entity.User;
+import com.elias.attendancecontrol.model.entity.OrganizationPlan;
+import com.elias.attendancecontrol.model.entity.Activity;
 import com.elias.attendancecontrol.persistence.repository.ActivityRepository;
 import com.elias.attendancecontrol.persistence.repository.OrganizationRepository;
 import com.elias.attendancecontrol.persistence.repository.SessionRepository;
@@ -47,12 +51,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         savedOrg.setOwner(owner);
         savedOrg = organizationRepository.save(savedOrg);
         Organization finalSavedOrg = savedOrg;
-        logService.log(builder -> builder
-                .eventType("ORGANIZATION_CREATED")
-                .description("Organización creada: " + finalSavedOrg.getName())
-                .user(owner)
-                .details("Plan: " + finalSavedOrg.getPlan() + ", Slug: " + finalSavedOrg.getSlug())
-        );
         log.info("Organization registered successfully: {}", savedOrg.getName());
         return savedOrg;
     }
@@ -68,10 +66,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         existingOrg.setPhone(organization.getPhone());
         existingOrg.setAddress(organization.getAddress());
         Organization updatedOrg = organizationRepository.save(existingOrg);
-        logService.log(builder -> builder
-                .eventType("ORGANIZATION_UPDATED")
-                .description("Organización actualizada: " + updatedOrg.getName())
-        );
         log.info("Organization updated: {}", id);
         return updatedOrg;
     }
@@ -173,6 +167,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         logService.log(builder -> builder
                 .eventType("USER_ADDED_TO_ORG")
                 .description("Usuario agregado a organización: " + organization.getName())
+                .organization(organization)
                 .user(user)
         );
         log.info("User {} added to organization {}", userId, organizationId);
@@ -190,6 +185,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         logService.log(builder -> builder
                 .eventType("USER_REMOVED_FROM_ORG")
                 .description("Usuario removido de organización")
+                .organization(user.getOrganization())
                 .user(user)
         );
         log.info("User {} removed from organization", userId);

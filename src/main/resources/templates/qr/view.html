@@ -18,7 +18,6 @@
             <div class="row mb-4">
                 <div class="col-12">
                     <h2><i class="bi bi-qr-code"></i> Código QR de Asistencia</h2>
-                    <p class="text-muted">Gestiona el acceso y registro de asistencia mediante QR</p>
                     <hr>
                 </div>
             </div>
@@ -33,9 +32,6 @@
                 <div class="col-md-8">
                     <div class="card">
                         <div class="card-header bg-primary text-white text-center">
-                            <h3 class="mb-0">
-                                <i class="bi bi-qr-code"></i> Código QR de Asistencia
-                            </h3>
                             <div class="mt-2">
                                 <span class="badge bg-success fs-6" id="sessionStatus">SESIÓN ACTIVA</span>
                             </div>
@@ -56,146 +52,152 @@
                                             </h2>
                                             <p class="text-muted mb-0">Asistencias Registradas</p>
                                         </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-warning bg-opacity-25">
-                                    <div class="card-body">
-                                        <h2 class="display-4 mb-0" id="timeRemaining">--:--</h2>
-                                        <p class="text-muted mb-0">Tiempo restante de QR</p>
+                                <div class="col-md-6">
+                                    <div class="card bg-warning bg-opacity-25">
+                                        <div class="card-body">
+                                            <h2 class="display-4 mb-0" id="timeRemaining">--:--</h2>
+                                            <p class="text-muted mb-0">Tiempo restante de QR</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mb-4">
-                            <h5><i class="bi bi-qr-code-scan"></i> Escanea este código</h5>
-                            <div class="bg-white p-4 rounded shadow-sm d-inline-block mt-3">
-                                <img th:if="${qrImage}"
-                                     th:src="${qrImage}"
-                                     alt="Código QR de Asistencia"
-                                     class="img-fluid"
-                                     style="max-width: 350px; width: 100%;"
-                                     id="qrImage">
-                                <div th:unless="${qrImage}" class="text-muted">
-                                    <i class="bi bi-hourglass-split" style="font-size: 3rem;"></i>
-                                    <p>Generando código QR...</p>
+                            <div class="mb-4">
+                                <h5><i class="bi bi-qr-code-scan"></i> Escanea este código</h5>
+                                <div class="bg-white p-4 rounded shadow-sm d-inline-block mt-3">
+                                    <img th:if="${qrImage}"
+                                         th:src="${qrImage}"
+                                         alt="Código QR de Asistencia"
+                                         class="img-fluid"
+                                         style="max-width: 350px; width: 100%;"
+                                         id="qrImage">
+                                    <div th:unless="${qrImage}" class="text-muted">
+                                        <i class="bi bi-hourglass-split" style="font-size: 3rem;"></i>
+                                        <p>Generando código QR...</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 mb-3">
+                                    <h6><i class="bi bi-link-45deg"></i> O comparte este enlace:</h6>
+                                    <div class="input-group mt-2">
+                                        <input type="text"
+                                               class="form-control"
+                                               th:value="${verificationLink}"
+                                               id="verificationLink"
+                                               readonly>
+                                        <button class="btn btn-outline-secondary"
+                                                type="button"
+                                                onclick="copyToClipboard()">
+                                            <i class="bi bi-clipboard"></i> Copiar
+                                        </button>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block">
+                                        <i class="bi bi-info-circle"></i>
+                                        Este enlace es válido por <strong><span th:text="${qrDurationMinutes}">1</span> minuto(s)</strong>
+                                    </small>
                                 </div>
                             </div>
-                            <div class="mt-4 mb-3">
-                                <h6><i class="bi bi-link-45deg"></i> O comparte este enlace:</h6>
-                                <div class="input-group mt-2">
-                                    <input type="text"
-                                           class="form-control"
-                                           th:value="${verificationLink}"
-                                           id="verificationLink"
-                                           readonly>
-                                    <button class="btn btn-outline-secondary"
-                                            type="button"
-                                            onclick="copyToClipboard()">
-                                        <i class="bi bi-clipboard"></i> Copiar
+                            <div class="mb-4">
+                                <h5><i class="bi bi-calendar-event"></i> Información de la Sesión</h5>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Actividad:</strong></p>
+                                        <p th:text="${activityName}">Nombre</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Fecha:</strong></p>
+                                        <p th:text="${#temporals.format(sessionDate, 'dd/MM/yyyy')}">Fecha</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Horario:</strong></p>
+                                        <p>
+                                            <span th:text="${#temporals.format(session.startTime, 'hh:mm a')}">08:00 AM</span>
+                                            -
+                                            <span th:text="${#temporals.format(session.endTime, 'hh:mm a')}">10:00 AM</span>
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Tolerancia:</strong></p>
+                                        <p>
+                                            <span class="badge bg-info">
+                                                <span th:text="${sessionEntity.toleranceMinutes}">15</span> minutos
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                La página se actualizará automáticamente cuando expire el código QR (cada <span th:text="${qrDurationMinutes}">1</span> minuto(s)).
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <form th:action="@{/activities/{activityId}/sessions/{sessionId}/manage/qr/regenerate(activityId=${activity.id}, sessionId=${sessionEntity.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="bi bi-arrow-clockwise"></i> Regenerar QR
                                     </button>
-                                </div>
-                                <small class="text-muted mt-1 d-block">
-                                    <i class="bi bi-info-circle"></i>
-                                    Este enlace es válido por <strong>1 minuto</strong>
-                                </small>
+                                </form>
+                                <form th:action="@{/sessions/{id}/close(id=${sessionEntity.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('¿Cerrar esta sesión? No se podrán registrar más asistencias.')">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-stop-circle"></i> Cerrar Sesión
+                                    </button>
+                                </form>
+                                <a th:href="@{/activities/{activityId}/sessions/{sessionId}/manage(activityId=${activity.id}, sessionId=${sessionEntity.id})}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Volver a Gestión
+                                </a>
                             </div>
-                        </div>
-                        <div class="mb-4">
-                            <h5><i class="bi bi-calendar-event"></i> Información de la Sesión</h5>
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Actividad:</strong></p>
-                                    <p th:text="${activityName}">Nombre</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Fecha:</strong></p>
-                                    <p th:text="${#temporals.format(sessionDate, 'dd/MM/yyyy')}">Fecha</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Horario:</strong></p>
-                                    <p>
-                                        <span th:text="${#temporals.format(session.startTime, 'HH:mm')}">08:00</span>
-                                        -
-                                        <span th:text="${#temporals.format(session.endTime, 'HH:mm')}">10:00</span>
-                                    </p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Tolerancia:</strong></p>
-                                    <p>
-                                        <span class="badge bg-info">
-                                            <span th:text="${sessionEntity.toleranceMinutes}">15</span> minutos
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            La página se actualizará automáticamente cuando expire el código QR (cada minuto).
-                        </div>
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                            <form th:action="@{/activities/{activityId}/sessions/{sessionId}/manage/qr/regenerate(activityId=${activity.id}, sessionId=${sessionEntity.id})}" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="bi bi-arrow-clockwise"></i> Regenerar QR
-                                </button>
-                            </form>
-                            <form th:action="@{/sessions/{id}/close(id=${sessionEntity.id})}" method="post" class="d-inline"
-                                  onsubmit="return confirm('¿Cerrar esta sesión? No se podrán registrar más asistencias.')">
-                                <button type="submit" class="btn btn-danger">
-                                    <i class="bi bi-stop-circle"></i> Cerrar Sesión
-                                </button>
-                            </form>
-                            <a th:href="@{/activities/{activityId}/sessions/{sessionId}/manage(activityId=${activity.id}, sessionId=${sessionEntity.id})}" class="btn btn-secondary">
-                                <i class="bi bi-arrow-left"></i> Volver a Gestión
-                            </a>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Tabla de Asistencias Registradas -->
-                        <h5 class="mb-0"><i class="bi bi-people"></i> Asistencias Registradas</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Hora</th>
-                                        <th>Participante</th>
-                                        <th>Estado</th>
-                                        <th>Tipo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr th:each="attendance : ${attendances}">
-                                        <td><small th:text="${#temporals.format(attendance.registrationTime, 'HH:mm:ss')}"></small></td>
-                                        <td th:text="${attendance.user.name + ' ' + attendance.user.lastname}"></td>
-                                        <td>
-                                            <span th:if="${attendance.status.isPresent()}" class="badge bg-success" th:text="${attendance.status.displayName}">Presente</span>
-                                            <span th:if="${attendance.status.isLate()}" class="badge bg-warning" th:text="${attendance.status.displayName}">Tarde</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-info" th:text="${attendance.registrationType}">QR</span>
-                                        </td>
-                                    </tr>
-                                    <tr th:if="${#lists.isEmpty(attendances)}">
-                                        <td colspan="4" class="text-center text-muted py-3">
-                                            <i class="bi bi-inbox"></i> Sin asistencias registradas aún
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+            <div class="row justify-content-center mt-4">
+                <div class="col-md-8">
+                    <div class="card shadow">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-people"></i> Asistencias Registradas</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Hora</th>
+                                            <th>Participante</th>
+                                            <th>Estado</th>
+                                            <th>Tipo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="attendance : ${attendances}">
+                                            <td><small th:text="${#temporals.format(attendance.registrationTime, 'hh:mm:ss a')}"></small></td>
+                                            <td th:text="${attendance.user.name + ' ' + attendance.user.lastname}"></td>
+                                            <td>
+                                                <span th:if="${attendance.status.isPresent()}" class="badge bg-success" th:text="${attendance.status.displayName}">Presente</span>
+                                                <span th:if="${attendance.status.isLate()}" class="badge bg-warning" th:text="${attendance.status.displayName}">Tarde</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info" th:text="${attendance.registrationType}">QR</span>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(attendances)}">
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                <i class="bi bi-inbox"></i> Sin asistencias registradas aún
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div></main><div th:replace="~{layout :: mobileNav}"></div>
+    </main>
+    <div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
     <script th:inline="javascript">
-        const sessionId = /*[[${sessionEntity.id}]]*/ 0;
-        const qrDurationMinutes = 1;
+        const qrDurationMinutes = /*[[${qrDurationMinutes}]]*/ 1;
         let startTime = Date.now();
 
         function updateTimer() {

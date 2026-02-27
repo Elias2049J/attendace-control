@@ -23,6 +23,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final LogService logService;
     @Value("${session-token.duration-hours}")
     private int sessionTokenDurationHours;
+
     @Override
     @Transactional(readOnly = true)
     public User authenticate(String username, String password) {

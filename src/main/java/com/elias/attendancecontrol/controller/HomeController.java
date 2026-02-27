@@ -46,7 +46,7 @@ public class HomeController {
             if (securityUtils.isOrganizationOwnerOrAdmin()) {
                 activities = activityService.listActivitiesSorted();
                 activitiesCount = activities.size();
-                totalUsers = organizationService.getUserCount((Long) model.getAttribute("organizationId"));
+                totalUsers = organizationService.getUserCount(securityUtils.getCurrentOrganizationId().orElse(null));
             } else {
                 activitiesCount = enrolledActivities.size() + responsibleActivities.size();
                 totalUsers = userService.countAllUsers();

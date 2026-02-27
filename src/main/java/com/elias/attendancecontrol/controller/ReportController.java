@@ -2,9 +2,14 @@ package com.elias.attendancecontrol.controller;
 import com.elias.attendancecontrol.service.ActivityService;
 import com.elias.attendancecontrol.service.ReportService;
 import com.elias.attendancecontrol.service.UserService;
+import com.elias.attendancecontrol.service.implementation.FileExportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,14 +23,17 @@ public class ReportController {
     private final ReportService reportService;
     private final ActivityService activityService;
     private final UserService userService;
+    private final FileExportService fileExportService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
-    public String showReportsMenu(Model model) {
+    public String showReportsMenu(Model model, @RequestParam(required = false) String success, @RequestParam(required = false) String error) {
         log.debug("Showing reports menu");
         model.addAttribute("activities", activityService.listActivitiesSorted());
         model.addAttribute("users", userService.listUsers());
         model.addAttribute("activeMenu", "reports");
+        if (success != null) model.addAttribute("success", success);
+        if (error != null) model.addAttribute("error", error);
         return "reports/menu";
     }
 
@@ -36,10 +44,11 @@ public class ReportController {
                                  Model model) {
         log.debug("Generating general report from {} to {}", startDate, endDate);
         try {
-            var reportData = reportService.generateReport(startDate, endDate);
+            var reportData = reportService.generateActivitiesUsersGeneralReport(startDate, endDate);
             model.addAttribute("reportData", reportData);
             model.addAttribute("startDate", startDate);
             model.addAttribute("endDate", endDate);
+            model.addAttribute("success", "Reporte generado correctamente");
             return "reports/general";
         } catch (Exception e) {
             log.error("Error generating report", e);
@@ -48,8 +57,93 @@ public class ReportController {
         }
     }
 
+    @GetMapping("/activity/{activityId}/export")
+    public ResponseEntity<byte[]> exportActivityReport(
+            @PathVariable Long activityId,
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate,
+            @RequestParam(defaultValue = "pdf") String format) {
+
+        byte[] fileBytes = fileExportService.exportReport(
+                reportService.generateActivityReport(activityId, startDate, endDate),
+                format);
+
+        String filename;
+        MediaType mediaType;
+
+        if ("excel".equalsIgnoreCase(format)) {
+            filename = "activity-report.xlsx";
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        } else {
+            filename = "activity-report.pdf";
+            mediaType = MediaType.APPLICATION_PDF;
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(mediaType);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/general/export")
+    public ResponseEntity<byte[]> exportGeneralReport(
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate,
+            @RequestParam(defaultValue = "pdf") String format) {
+
+        byte[] fileBytes = fileExportService.exportReport(
+                reportService.generateActivitiesUsersGeneralReport(startDate, endDate),
+                format);
+
+        String filename;
+        MediaType mediaType;
+
+        if ("excel".equalsIgnoreCase(format)) {
+            filename = "general-attendance.xlsx";
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        } else {
+            filename = "general-attendance-report.pdf";
+            mediaType = MediaType.APPLICATION_PDF;
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(mediaType);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/member/{userId}/export")
+    public ResponseEntity<byte[]> exportUserReport(
+            @PathVariable Long userId,
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate,
+            @RequestParam(defaultValue = "pdf") String format) {
+
+        byte[] fileBytes = fileExportService.exportReport(
+                reportService.generateUserReport(userId, startDate, endDate),
+                format);
+
+        String filename;
+        MediaType mediaType;
+
+        if ("excel".equalsIgnoreCase(format)) {
+            filename = "member-report.xlsx";
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        } else {
+            filename = "member-report.pdf";
+            mediaType = MediaType.APPLICATION_PDF;
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(mediaType);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
     @PostMapping("/activity/{activityId}")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String generateActivityReport(@PathVariable Long activityId,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -61,6 +155,7 @@ public class ReportController {
             model.addAttribute("activityId", activityId);
             model.addAttribute("startDate", startDate);
             model.addAttribute("endDate", endDate);
+            model.addAttribute("success", "Reporte generado correctamente");
             return "reports/activity";
         } catch (Exception e) {
             log.error("Error generating activity report", e);
@@ -70,7 +165,6 @@ public class ReportController {
     }
 
     @PostMapping("/user/{userId}")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String generateUserReport(@PathVariable Long userId,
                                      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -82,6 +176,7 @@ public class ReportController {
             model.addAttribute("userId", userId);
             model.addAttribute("startDate", startDate);
             model.addAttribute("endDate", endDate);
+            model.addAttribute("success", "Reporte generado correctamente");
             return "reports/user";
         } catch (Exception e) {
             log.error("Error generating user report", e);

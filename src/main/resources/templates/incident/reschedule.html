@@ -26,7 +26,7 @@
                                     <option th:each="sessionEntity : ${sessions}"
                                             th:if="${sessionEntity.status.isPlanned()}"
                                             th:value="${sessionEntity.sessionDate}"
-                                            th:text="${#temporals.format(sessionEntity.sessionDate, 'dd/MM/yyyy') + ' - ' + #temporals.format(sessionEntity.startTime, 'HH:mm')}">
+                                            th:text="${#temporals.format(sessionEntity.sessionDate, 'dd/MM/yyyy') + ' - ' + #temporals.format(sessionEntity.startTime, 'hh:mm a')}">
                                     </option>
                                 </select>
                             </div>

@@ -50,9 +50,9 @@
                             <div class="col-md-6">
                                 <p class="mb-1"><strong>Horario:</strong></p>
                                 <p>
-                                    <span th:text="${#temporals.format(incident.affectedSession.startTime, 'HH:mm')}"></span>
+                                    <span th:text="${#temporals.format(incident.affectedSession.startTime, 'hh:mm a')}"></span>
                                     -
-                                    <span th:text="${#temporals.format(incident.affectedSession.endTime, 'HH:mm')}"></span>
+                                    <span th:text="${#temporals.format(incident.affectedSession.endTime, 'hh:mm a')}"></span>
                                 </p>
                             </div>
                         </div>
@@ -64,9 +64,9 @@
                             <div class="col-md-6">
                                 <p class="mb-1"><strong>Nuevo horario:</strong></p>
                                 <p>
-                                    <span th:text="${#temporals.format(incident.replacementSession.startTime, 'HH:mm')}"></span>
+                                    <span th:text="${#temporals.format(incident.replacementSession.startTime, 'hh:mm a')}"></span>
                                     -
-                                    <span th:text="${#temporals.format(incident.replacementSession.endTime, 'HH:mm')}"></span>
+                                    <span th:text="${#temporals.format(incident.replacementSession.endTime, 'hh:mm a')}"></span>
                                 </p>
                             </div>
                         </div>

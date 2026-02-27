@@ -1,4 +1,5 @@
 package com.elias.attendancecontrol.controller;
+import com.elias.attendancecontrol.model.dto.CalendarEventDTO;
 import com.elias.attendancecontrol.service.ActivityService;
 import com.elias.attendancecontrol.service.CalendarService;
 import com.elias.attendancecontrol.service.SessionService;
@@ -8,7 +9,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.ObjectMapper;
+
 import java.time.LocalDate;
+import java.util.List;
+
 @Slf4j
 @Controller
 @RequestMapping("/calendar")
@@ -32,6 +37,7 @@ public class CalendarController {
         }
         model.addAttribute("sessions", calendarService.getCalendarView(startDate, endDate));
         model.addAttribute("activities", activityService.listActivitiesSorted());
+        model.addAttribute("eventsJson", new ObjectMapper().writeValueAsString(calendarService.getCalendarEventsForJson(startDate, endDate)));
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate", endDate);
         model.addAttribute("activeMenu", "calendar");
@@ -44,5 +50,13 @@ public class CalendarController {
                                            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         log.debug("Getting activities from {} to {}", startDate, endDate);
         return calendarService.getActivitiesByDateRange(startDate, endDate);
+    }
+
+    @GetMapping("/events")
+    @ResponseBody
+    public List<CalendarEventDTO> getEventsJson(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return calendarService.getCalendarEventsForJson(startDate, endDate);
     }
 }

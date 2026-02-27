@@ -49,11 +49,12 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.setEnrolledByUser(securityUtils.getCurrentUser().orElse(null));
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
         logService.log(builder -> builder
-            .eventType("USER_ENROLLED")
-            .description("Usuario inscrito en actividad: " + activity.getName())
-            .user(user)
-            .details("Activity ID: " + activityId + ", Enrolled by: " +
-                    (enrollment.getEnrolledByUser() != null ? enrollment.getEnrolledByUser().getUsername() : "System"))
+                .eventType("USER_ENROLLED")
+                .description("Usuario inscrito en actividad: " + activity.getName())
+                .user(user)
+                .organization(user.getOrganization())
+                .details("Activity ID: " + activityId + ", Enrolled by: " +
+                        (enrollment.getEnrolledByUser() != null ? enrollment.getEnrolledByUser().getUsername() : "System"))
         );
         log.info("User {} enrolled in activity {} successfully", userId, activityId);
         return savedEnrollment;
@@ -103,6 +104,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             .eventType("BULK_ENROLLMENT")
             .description("Inscripción masiva en actividad: " + activity.getName())
             .user(enrolledBy)
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
             .details("Inscritos: " + finalSuccessCount + ", Omitidos: " + finalSkipCount + ", Total intentos: " + userIds.size())
         );
         log.info("Bulk enrollment completed: {} success, {} skipped", successCount, skipCount);
@@ -121,11 +123,12 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         enrollment.setStatus(EnrollmentStatus.DROPPED);
         enrollmentRepository.save(enrollment);
         logService.log(builder -> builder
-            .eventType("USER_DROPPED")
-            .description("Usuario dado de baja de actividad: " + activity.getName())
-            .user(user)
-            .details("Activity ID: " + activityId + ", Removed by: " +
-                    securityUtils.getCurrentUser().map(User::getUsername).orElse("System"))
+                .eventType("USER_DROPPED")
+                .description("Usuario dado de baja de actividad: " + activity.getName())
+                .user(user)
+                .organization(user.getOrganization())
+                .details("Activity ID: " + activityId + ", Removed by: " +
+                        securityUtils.getCurrentUser().map(User::getUsername).orElse("System"))
         );
         log.info("User {} removed from activity {} successfully", userId, activityId);
     }

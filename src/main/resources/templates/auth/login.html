@@ -71,12 +71,34 @@
             </div>
         </aside>
         <main class="login-main self-center p-5 mx-auto d-flex flex-column justify-content-center">
-            <div class="d-flex justify-content-start align-items-center mb-3">
+            <div class="d-flex justify-content-center align-items-center mb-3">
                 <img src="/favicon.ico" alt="Logo MIRAE" style="width:80px;">
                 <span class="ms-3 display-4 text-mirae-dark">MIRAE</span>
             </div>
             <div class="text-neutral">
                 <div class="text-center py-2">Iniciar Sesión</div>
+
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span th:text="${error}">Credenciales inválidas</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span th:text="${success}">Operación exitosa</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${inactive}" class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="bi bi-lock-fill"></i>
+                    Usuario inactivo. Contacte al administrador.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${logout}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill"></i>
+                    Sesión cerrada correctamente
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
                 <form th:action="@{/auth/login}" method="post">
                     <div class="mb-2 d-grid">
                         <label for="username" class="form-label text-sm fw-semibold">

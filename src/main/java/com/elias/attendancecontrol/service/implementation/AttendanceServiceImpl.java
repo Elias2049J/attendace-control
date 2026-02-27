@@ -72,6 +72,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .description("Asistencia registrada por QR")
                 .user(user)
                 .session(session)
+                .organization(user.getOrganization())
                 .details("Estado: " + savedAttendance.getStatus())
         );
         log.info("Attendance registered successfully: user={}, session={}, status={}",
@@ -137,6 +138,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                                 .eventType("ATTENDANCE_UPDATED")
                                 .description("Asistencia actualizada manualmente")
                                 .user(user)
+                                .organization(user.getOrganization())
                                 .session(session)
                                 .details(String.format("Usuario: %s, Estado anterior: %s, Nuevo estado: %s",
                                         user.getUsername(), oldStatus, newStatus))
@@ -165,6 +167,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .eventType("ATTENDANCE_MANUAL")
                             .description("Asistencia registrada manualmente")
                             .user(user)
+                            .organization(user.getOrganization())
                             .session(session)
                             .details("Usuario: " + user.getUsername() + ", Estado: " + newStatus)
                     );

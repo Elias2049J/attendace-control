@@ -31,6 +31,7 @@ public class AuthController {
         if (error != null) {
             model.addAttribute("error", "Credenciales inválidas. Por favor, intente nuevamente.");
         }
+
         if (logout != null) {
             model.addAttribute("logout", true);
         }
@@ -44,10 +45,11 @@ public class AuthController {
                 tokenService.invalidateUserSessionTokens(user.getUsername());
                 log.debug("Session tokens invalidated for user: {}", user.getUsername());
                 logService.log(builder -> builder
-                    .eventType("USER_LOGOUT")
-                    .description("Usuario cerró sesión")
-                    .user(user)
-                    .ipAddress(request.getRemoteAddr())
+                        .eventType("USER_LOGOUT")
+                        .description("Usuario cerró sesión")
+                        .user(user)
+                        .organization(user.getOrganization())
+                        .ipAddress(request.getRemoteAddr())
                 );
             } catch (Exception e) {
                 log.error("Error invalidating session tokens for user: {}", user.getUsername(), e);

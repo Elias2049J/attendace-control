@@ -17,14 +17,17 @@ public class LogController {
     private final LogService logService;
     private final UserService userService;
     private final SecurityUtils securityUtils;
+
     @GetMapping
     public String listAuditLogs(Model model) {
         log.debug("Listing audit logs");
         model.addAttribute("auditLogs", logService.listAuditLogs());
         model.addAttribute("users", userService.listUsers());
         model.addAttribute("isSystemAdmin", securityUtils.isSystemAdmin());
+        model.addAttribute("activeMenu", "audit");
         return "audit/list";
     }
+
     @GetMapping("/search/results")
     public String searchLogsFragment(
             @RequestParam(required = false) Long userId,
@@ -41,6 +44,7 @@ public class LogController {
         model.addAttribute("endDate", endDate);
         return "fragments/audit-results :: resultsTable";
     }
+
     @GetMapping("/filter")
     public String filterAuditLogs(
             @RequestParam(required = false) Long userId,

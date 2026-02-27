@@ -31,10 +31,11 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="password" class="form-label">Nueva Contraseña</label>
-                                    <input type="password" class="form-control" id="password" th:field="*{password}"
+                                    <input type="password" class="form-control" id="password" name="password"
                                            placeholder="Dejar en blanco para mantener la actual">
                                     <small class="form-text text-muted">Mínimo 8 caracteres si desea cambiarla</small>
                                 </div>
+                                <input type="hidden" id="passwordFallback" name="password" value="password">
                                 <div class="d-flex justify-content-between mt-4">
                                     <a th:href="@{/profile}" class="btn btn-secondary">
                                         <i class="bi bi-x-circle"></i> Cancelar
@@ -52,5 +53,14 @@
     </main>
     <div th:replace="~{layout :: mobileNav}"></div>
     <div th:replace="~{layout :: scripts}"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('password');
+            const passwordFallback = document.getElementById('passwordFallback');
+            passwordInput.addEventListener('input', function() {
+                passwordFallback.disabled = this.value.length > 0;
+            });
+        });
+    </script>
 </body>
 </html>

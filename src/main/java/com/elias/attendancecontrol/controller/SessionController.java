@@ -25,28 +25,22 @@ public class SessionController {
                                  @RequestParam(required = false) String returnUrl,
                                  RedirectAttributes redirectAttributes) {
         log.debug("Activating session: {}", id);
+        Session session = sessionService.getSessionById(id);
+        if (session.getActivity() != null && session.getActivity().getOrganization() != null) {
+            securityUtils.validateResourceOwnership(session.getActivity().getOrganization().getId());
+        }
+        Long activityId = session.getActivity().getId();
         try {
-            Session session = sessionService.getSessionById(id);
-            if (session.getActivity() != null && session.getActivity().getOrganization() != null) {
-                securityUtils.validateResourceOwnership(session.getActivity().getOrganization().getId());
-            }
-
-            // Activar la sesión
             sessionService.activateSession(id);
-
-            // Generar QR automáticamente
             try {
                 tokenService.regenerateQR(id);
                 log.info("QR generated automatically for activated session: {}", id);
             } catch (Exception e) {
                 log.error("Error generating QR for session {}: {}", id, e.getMessage());
-                // No fallar la activación si el QR falla
             }
 
             redirectAttributes.addFlashAttribute("success", "Sesión activada exitosamente");
 
-            // Redirigir a la vista de QR automáticamente
-            Long activityId = session.getActivity().getId();
             return "redirect:/activities/" + activityId + "/sessions/" + id + "/manage/qr";
 
         } catch (SecurityException e) {
@@ -57,7 +51,7 @@ public class SessionController {
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", "No se puede activar: " + e.getMessage());
         }
-        return "redirect:/calendar";
+        return "redirect:/activities/" + activityId + "/sessions/" + id + "/manage";
     }
 
     @PostMapping("/{id}/close")

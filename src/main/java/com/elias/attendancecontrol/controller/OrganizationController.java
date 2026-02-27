@@ -3,6 +3,7 @@ import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.dto.OrganizationRegistrationDTO;
 import com.elias.attendancecontrol.model.entity.Organization;
 import com.elias.attendancecontrol.model.entity.OrganizationPlan;
+import com.elias.attendancecontrol.model.entity.OrganizationRole;
 import com.elias.attendancecontrol.model.entity.SystemRole;
 import com.elias.attendancecontrol.model.entity.User;
 import com.elias.attendancecontrol.service.LogService;
@@ -68,12 +69,101 @@ public class OrganizationController {
             List<User> members = userService.findByOrganizationId(org.getId());
             model.addAttribute("organization", org);
             model.addAttribute("members", members);
-            model.addAttribute("activeMenu", "organizations");
+            model.addAttribute("activeMenu", "members");
             return "organizations/members";
         } catch (Exception e) {
             log.error("Error showing organization members: {}", e.getMessage());
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/";
+        }
+    }
+
+    @GetMapping("/{slug}/members/new")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    public String showAddMemberForm(@PathVariable String slug, Model model, RedirectAttributes redirectAttributes) {
+        log.debug("Showing add member form for organization: {}", slug);
+        try {
+            User currentUser = securityUtils.getCurrentUserOrThrow();
+            Organization org = currentUser.getOrganization();
+
+            if (!org.getSlug().equals(slug)) {
+                redirectAttributes.addFlashAttribute("error", "No tiene acceso a esta organización");
+                return "redirect:/organizations/" + org.getSlug() + "/members";
+            }
+
+            User newMember = new User();
+            newMember.setOrganizationRole(OrganizationRole.MEMBER);
+            model.addAttribute("newMember", newMember);
+            model.addAttribute("organization", org);
+            model.addAttribute("activeMenu", "members");
+            return "organizations/member-register";
+        } catch (Exception e) {
+            log.error("Error showing add member form: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "Error al cargar el formulario: " + e.getMessage());
+            return "redirect:/organizations/" + slug + "/members";
+        }
+    }
+
+    @PostMapping("/{slug}/members/new")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    public String addMember(@PathVariable String slug,
+                            @Valid @ModelAttribute("newMember") User newMember,
+                            BindingResult result,
+                            Model model,
+                            RedirectAttributes redirectAttributes) {
+        log.debug("Adding new member to organization: {}", slug);
+        try {
+            User currentUser = securityUtils.getCurrentUserOrThrow();
+            Organization org = currentUser.getOrganization();
+
+            if (!org.getSlug().equals(slug)) {
+                redirectAttributes.addFlashAttribute("error", "No tiene acceso a esta organización");
+                return "redirect:/organizations/" + org.getSlug() + "/members";
+            }
+
+            if (result.hasErrors()) {
+                model.addAttribute("organization", org);
+                model.addAttribute("activeMenu", "members");
+                return "organizations/member-register";
+            }
+
+            if (newMember.getOrganizationRole() == null || newMember.getOrganizationRole().isOwner()) {
+                newMember.setOrganizationRole(OrganizationRole.MEMBER);
+            }
+
+            newMember.setSystemRole(SystemRole.USER);
+            newMember.setActive(newMember.getActive() != null ? newMember.getActive() : true);
+
+            User savedMember = userService.createUser(newMember);
+
+            logService.log(builder -> builder
+                    .eventType("MEMBER_ADDED")
+                    .description("Nuevo miembro agregado: " + savedMember.getUsername())
+                    .user(currentUser)
+                    .organization(org)
+                    .details("Rol: " + savedMember.getOrganizationRole())
+            );
+
+            redirectAttributes.addFlashAttribute("success",
+                    "Miembro '" + savedMember.getFullname() + "' agregado exitosamente");
+            return "redirect:/organizations/" + slug + "/members";
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            log.warn("Error adding member to organization {}: {}", slug, e.getMessage());
+            try {
+                User currentUser = securityUtils.getCurrentUserOrThrow();
+                Organization org = currentUser.getOrganization();
+                model.addAttribute("organization", org);
+            } catch (Exception ex) {
+                log.error("Error recovering organization context: {}", ex.getMessage());
+            }
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("activeMenu", "members");
+            return "organizations/member-register";
+        } catch (Exception e) {
+            log.error("Unexpected error adding member: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Error inesperado al agregar el miembro: " + e.getMessage());
+            return "redirect:/organizations/" + slug + "/members";
         }
     }
 
@@ -84,6 +174,7 @@ public class OrganizationController {
         model.addAttribute("plans", OrganizationPlan.values());
         return "organizations/register";
     }
+
     @PostMapping("/register")
     public String registerOrganization(@ModelAttribute OrganizationRegistrationDTO registrationDTO,
                                       HttpServletRequest request,
@@ -219,11 +310,12 @@ public class OrganizationController {
                 log.warn("User {} attempted to update organization {} without permission",
                         currentUser.getUsername(), slug);
                 logService.log(builder -> builder
-                    .eventType("UNAUTHORIZED_ORG_UPDATE_ATTEMPT")
-                    .description("Intento no autorizado de actualizar organización")
-                    .user(currentUser)
-                    .ipAddress(request.getRemoteAddr())
-                    .details("Target org slug: " + slug)
+                        .eventType("UNAUTHORIZED_ORG_UPDATE_ATTEMPT")
+                        .description("Intento no autorizado de actualizar organización")
+                        .user(currentUser)
+                        .organization(currentOrg)
+                        .ipAddress(request.getRemoteAddr())
+                        .details("Target org slug: " + slug)
                 );
                 redirectAttributes.addFlashAttribute("error", "No tiene permisos para editar esta organización");
                 return "redirect:/organizations/" + currentOrg.getSlug() + "/dashboard";
@@ -355,8 +447,30 @@ public class OrganizationController {
                 return "redirect:/organizations/" + slug + "/members";
             }
             userService.deactivateUser(id);
+            redirectAttributes.addFlashAttribute("success", "Usuario desactivado exitosamente");
         } catch (IllegalArgumentException e) {
             log.warn("Error deactivating user: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/organizations/" + slug + "/members";
+    }
+
+    @PostMapping("/{slug}/members/{id}/activate")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
+    public String activateUser(@PathVariable String slug, @PathVariable Long id, RedirectAttributes redirectAttributes) {
+        log.debug("Activating user: {} in org {}", id, slug);
+        try {
+            User targetUser = userService.getUserById(id);
+            if (!securityUtils.canEditUser(targetUser)) {
+                log.warn("User {} attempted to activate user {} without permission", securityUtils.getCurrentUser().map(User::getUsername).orElse("unknown"), id);
+                redirectAttributes.addFlashAttribute("error", "No tiene permisos para activar este usuario");
+                return "redirect:/organizations/" + slug + "/members";
+            }
+            userService.activateUser(id);
+            redirectAttributes.addFlashAttribute("success", "Usuario activado exitosamente");
+        } catch (IllegalArgumentException e) {
+            log.warn("Error activating user: {}", e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/organizations/" + slug + "/members";
     }

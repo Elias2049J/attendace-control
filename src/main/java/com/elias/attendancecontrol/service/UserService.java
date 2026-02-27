@@ -7,6 +7,7 @@ public interface UserService {
     User createUser(User user);
     User updateUser(Long userToUpdateId, User userToUpdate);
     void deactivateUser(Long id);
+    void activateUser(Long id);
     List<User> listUsers();
     User getUserById(Long id);
     List<User> getAvailableUsersExcluding(SystemRole systemRole, List<Long> excludedUserIds);

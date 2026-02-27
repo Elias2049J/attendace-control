@@ -23,6 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findActiveByOrganizationId(@Param("orgId") Long organizationId);
     @Query("SELECT u FROM User u WHERE u.systemRole = :systemRole AND u.active = true AND u.id NOT IN :excludedIds")
     List<User> findActiveBySystemRoleAndIdNotIn(@Param("systemRole") SystemRole systemRole, @Param("excludedIds") List<Long> excludedIds);
+    List<User> findAllByActiveAndOrganization_Id(Boolean active, Long organizationId);
     List<User> findBySystemRoleAndActiveTrue(SystemRole systemRole);
     @Query("SELECT u FROM User u WHERE " +
            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

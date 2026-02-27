@@ -3,16 +3,25 @@ import com.elias.attendancecontrol.model.entity.Organization;
 import com.elias.attendancecontrol.model.entity.OrganizationRole;
 import com.elias.attendancecontrol.model.entity.SystemRole;
 import com.elias.attendancecontrol.model.entity.User;
+import com.elias.attendancecontrol.persistence.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
+
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class SecurityUtils {
+
+    private final UserRepository userRepository;
     public Optional<User> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -36,7 +45,9 @@ public class SecurityUtils {
     }
 
     public boolean isOrganizationMember() {
-        return getCurrentUser().orElseThrow().getOrganizationRole().isMember();
+        return getCurrentUser()
+                .map(user -> user.getOrganizationRole() != null && user.getOrganizationRole().isMember())
+                .orElse(false);
     }
     
     public Optional<Organization> getCurrentOrganization() {
@@ -102,12 +113,40 @@ public class SecurityUtils {
         User currentUser = getCurrentUser().orElse(null);
         if (currentUser == null) return false;
         if (isSystemAdmin()) return true;
+        OrganizationRole targetRole = targetUser.getOrganizationRole();
+        if (isOrganizationAdmin() && targetRole != null && targetRole.isAdmin()) return false;
         if (isOrganizationOwnerOrAdmin() && currentUser.getOrganization() != null
                 && targetUser.getOrganization() != null
                 && currentUser.getOrganization().getId().equals(targetUser.getOrganization().getId())) {
-            return targetUser.getOrganizationRole() != OrganizationRole.OWNER;
+            return targetRole != OrganizationRole.OWNER;
         }
         return false;
+    }
+
+
+    public void refreshCurrentUserInSession(Long userId) {
+        try {
+            Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+            if (currentAuth == null) return;
+            Object principal = currentAuth.getPrincipal();
+            if (!(principal instanceof CustomUserDetails currentDetails)) return;
+            if (!currentDetails.getUser().getId().equals(userId)) return;
+
+            userRepository.findById(userId).ifPresent(freshUser -> {
+                var authorities = new ArrayList<SimpleGrantedAuthority>();
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + freshUser.getSystemRole().name()));
+                if (freshUser.getOrganizationRole() != null) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ORG_" + freshUser.getOrganizationRole().name()));
+                }
+                CustomUserDetails freshDetails = new CustomUserDetails(freshUser, authorities);
+                UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
+                        freshDetails, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(newAuth);
+                log.debug("SecurityContext refreshed for user: {}", freshUser.getUsername());
+            });
+        } catch (Exception e) {
+            log.warn("Could not refresh SecurityContext for user {}: {}", userId, e.getMessage());
+        }
     }
 
     public void requireSystemAdmin() {

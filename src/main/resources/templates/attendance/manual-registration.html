@@ -44,8 +44,8 @@
                         <div class="col-md-4">
                             <strong>Horario:</strong>
                             <p>
-                                <span th:text="${#temporals.format(session.startTime, 'HH:mm')}">08:00</span> -
-                                <span th:text="${#temporals.format(session.endTime, 'HH:mm')}">10:00</span>
+                                <span th:text="${#temporals.format(session.startTime, 'hh:mm a')}">08:00 AM</span> -
+                                <span th:text="${#temporals.format(session.endTime, 'hh:mm a')}">10:00 AM</span>
                             </p>
                         </div>
                     </div>

@@ -1,11 +1,15 @@
 package com.elias.attendancecontrol.service.implementation;
+import com.elias.attendancecontrol.model.dto.ActivityUserReportDTO;
+import com.elias.attendancecontrol.model.dto.ActivityAttendanceSummaryDTO;
+import com.elias.attendancecontrol.model.dto.UserActivityReportDTO;
 import com.elias.attendancecontrol.model.entity.*;
 import com.elias.attendancecontrol.persistence.repository.*;
-import com.elias.attendancecontrol.service.ReportService;
+import com.elias.attendancecontrol.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,23 +25,42 @@ public class ReportServiceImpl implements ReportService {
     private final UserRepository userRepository;
 
     @Override
-    public Map<String, Object> generateReport(LocalDate startDate, LocalDate endDate) {
-        return Map.of();
-    }
-
-    @Override
     public Map<String, Object> generateActivityReport(Long activityId, LocalDate startDate, LocalDate endDate) {
-        return Map.of();
+        List<ActivityUserReportDTO> activityUserReportDTOList = attendanceRepository.getActivityUserReport(activityId, startDate, endDate);
+        return Map.of(
+                "timestamp", LocalDateTime.now(),
+                "details", activityUserReportDTOList,
+                "rows", activityUserReportDTOList.size(),
+                "startDate", startDate,
+                "endDate", endDate
+        );
     }
 
     @Override
     public Map<String, Object> generateUserReport(Long userId, LocalDate startDate, LocalDate endDate) {
-        return Map.of();
+        List<UserActivityReportDTO> activityUserReportDTOList = attendanceRepository.getUserActivityReport(userId, startDate, endDate);
+        return Map.of(
+                "timestamp", LocalDateTime.now(),
+                "details", activityUserReportDTOList,
+                "rows", activityUserReportDTOList.size(),
+                "startDate", startDate,
+                "endDate", endDate
+        );
     }
 
     @Override
-    public byte[] exportReport(Map<String, Object> reportData, String format) {
-        return new byte[0];
+    public Map<String, Object> generateActivitiesUsersGeneralReport(LocalDate startDate, LocalDate endDate) {
+        List<ActivityAttendanceSummaryDTO> summaryList = attendanceRepository.getGeneralActivityReport(startDate, endDate);
+        return Map.of(
+                "details", summaryList,
+                "rows", summaryList.size(),
+                "timestamp", LocalDateTime.now()
+        );
+    }
+
+    @Override
+    public Map<String, Object> generateLogsReport(LocalDate startDate, LocalDate endDate) {
+        return Map.of();
     }
 
     @Override

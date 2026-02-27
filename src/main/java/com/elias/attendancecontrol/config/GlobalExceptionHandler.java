@@ -37,6 +37,7 @@ public class GlobalExceptionHandler {
         logService.log(builder -> builder
                 .eventType("ACCESS_DENIED")
                 .description("Intento de acceso no autorizado a: " + path)
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
                 .user(securityUtils.getCurrentUser().orElse(null))
                 .ipAddress(request.getRemoteAddr())
                 .details("Method: " + method + ", Message: " + e.getMessage())

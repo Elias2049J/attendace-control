@@ -17,11 +17,16 @@ public class QRController {
 
     @Value("${app.base-url}")
     private String baseUrl;
+
+    @Value("${qr.duration-minutes}")
+    private int qrDurationMinutes;
+
     @GetMapping("/generate/{sessionId}")
     public String generateQR(@PathVariable Long sessionId, Model model) {
         log.debug("Generating QR for session: {}", sessionId);
         Map<String, Object> qrData = tokenService.generateQRWithFullData(sessionId, baseUrl);
         model.addAllAttributes(qrData);
+        model.addAttribute("qrDurationMinutes", qrDurationMinutes);
         return "qr/view";
     }
 

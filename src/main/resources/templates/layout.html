@@ -45,13 +45,13 @@
                 <span class="ms-2">Mi Organización</span>
             </a>
             <a th:href="@{/users}"
-               th:class="'sidebar-link' + ${activeMenu == 'organizations' ? ' active' : ''}"
-               th:if="${isSysAdmin}">
+               th:class="'sidebar-link' + ${activeMenu == 'users' ? ' active' : ''}"
+               th:if="${isSysAdmin == true}">
                 <i class="bi bi-people"></i>
                 <span class="ms-2">Usuarios</span>
             </a>
             <a th:href="@{/organizations/{slug}/members(slug=${currentUser?.organization?.slug})}"
-               th:class="'sidebar-link' + ${activeMenu == 'organizations' ? ' active' : ''}"
+               th:class="'sidebar-link' + ${activeMenu == 'members' ? ' active' : ''}"
                th:if="${(isOrgOwner == true or isOrgAdmin == true) and isSysAdmin != true and currentOrganizationId != null}">
                 <i class="bi bi-people"></i>
                 <span class="ms-2">Miembros</span>
@@ -67,7 +67,7 @@
                 <span class="ms-2">Reportes</span>
             </a>
             <a th:href="@{/audit}" th:class="'sidebar-link' + ${activeMenu == 'audit' ? ' active' : ''}"
-               th:if="${isSysAdmin == true}">
+               th:if="${isSysAdmin == true or isOrgOwnerOrAdmin == true}">
                 <i class="bi bi-shield-check"></i>
                 <span class="ms-2">Auditoría</span>
             </a>
@@ -110,13 +110,13 @@
                     <small>Mi Org</small>
                 </a>
                 <a th:href="@{/users}"
-                   th:class="'mobile-nav-item' + ${activeMenu == 'organizations' ? ' active' : ''}"
-                   th:if="${isSysAdmin}">
+                   th:class="'mobile-nav-item' + ${activeMenu == 'users' ? ' active' : ''}"
+                   th:if="${isSysAdmin == true}">
                     <i class="bi bi-people"></i>
                     <small>Usuarios</small>
                 </a>
                 <a th:href="@{/organizations/{slug}/members(slug=${currentUser?.organization?.slug})}"
-                   th:class="'mobile-nav-item' + ${activeMenu == 'organizations' ? ' active' : ''}"
+                   th:class="'mobile-nav-item' + ${activeMenu == 'members' ? ' active' : ''}"
                    th:if="${isOrgOwnerOrAdmin == true and currentOrganizationId != null}">
                     <i class="bi bi-people"></i>
                     <small>Miembros</small>
@@ -135,7 +135,7 @@
                 </a>
                 <a th:href="@{/audit}"
                    th:class="'mobile-nav-item' + ${activeMenu == 'audit' ? ' active' : ''}"
-                   th:if="${isSysAdmin == true}">
+                   th:if="${isSysAdmin == true or isOrgOwnerOrAdmin == true}">
                     <i class="bi bi-shield-check"></i>
                     <small>Auditoría</small>
                 </a>

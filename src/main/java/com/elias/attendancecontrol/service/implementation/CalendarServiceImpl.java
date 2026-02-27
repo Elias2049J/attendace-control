@@ -1,6 +1,7 @@
 package com.elias.attendancecontrol.service.implementation;
 
 import com.elias.attendancecontrol.config.SecurityUtils;
+import com.elias.attendancecontrol.model.dto.CalendarEventDTO;
 import com.elias.attendancecontrol.model.entity.Activity;
 import com.elias.attendancecontrol.model.entity.Organization;
 import com.elias.attendancecontrol.model.entity.Session;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,7 +32,6 @@ public class CalendarServiceImpl implements CalendarService {
     private final ActivityService activityService;
 
     @Override
-    @Transactional(readOnly = true)
     public List<Session> getCalendarView(LocalDate startDate, LocalDate endDate) {
         Optional<Organization> organizationOptional = securityUtils.getCurrentOrganization();
         User user = securityUtils.getCurrentUserOrThrow();
@@ -79,5 +80,26 @@ public class CalendarServiceImpl implements CalendarService {
                     log.debug("No organization context, getting all activities by date range from {} to {}", startDate, endDate);
                     return activityRepository.findBySessionsDateBetween(startDate, endDate);
                 });
+    }
+
+    @Override
+    public List<CalendarEventDTO> getCalendarEventsForJson(LocalDate startDate, LocalDate endDate) {
+        DateTimeFormatter isoFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        return getCalendarView(startDate, endDate).stream()
+                .filter(s -> s.getActivity() != null)
+                .map(session -> {
+                    String title = session.getActivity().getName();
+                    String description = session.getActivity().getDescription();
+                    String start = session.getSessionDate().atTime(session.getStartTime()).format(isoFormatter);
+                    String end = session.getSessionDate().atTime(session.getEndTime()).format(isoFormatter);
+                    String color = switch (session.getStatus()) {
+                        case ACTIVE -> "#2E8B57";
+                        case CLOSED -> "#6C757D";
+                        case CANCELLED -> "#DC3545";
+                        default -> "#1E90FF";
+                    };
+                    return new CalendarEventDTO(title, start, end, description, color);
+                })
+                .collect(Collectors.toList());
     }
 }

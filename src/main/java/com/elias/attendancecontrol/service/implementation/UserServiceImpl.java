@@ -2,6 +2,7 @@ package com.elias.attendancecontrol.service.implementation;
 
 import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.Organization;
+import com.elias.attendancecontrol.model.entity.OrganizationRole;
 import com.elias.attendancecontrol.model.entity.SystemRole;
 import com.elias.attendancecontrol.model.entity.User;
 import com.elias.attendancecontrol.persistence.repository.OrganizationRepository;
@@ -30,6 +31,7 @@ public class UserServiceImpl implements UserService {
     private final LogService logService;
     private final OrganizationService organizationService;
     private final SecurityUtils securityUtils;
+
     @Override
     @Transactional
     public User registerUser(User user) {
@@ -104,27 +106,42 @@ public class UserServiceImpl implements UserService {
         log.debug("Updating user: {}", userToUpdateId);
         User existingUser = userRepository.findById(userToUpdateId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        // Actualizar username solo si cambió y no está ya en uso por otro usuario
+        if (userToUpdate.getUsername() != null && !userToUpdate.getUsername().isBlank()
+                && !userToUpdate.getUsername().equals(existingUser.getUsername())) {
+            if (userRepository.existsByUsername(userToUpdate.getUsername())) {
+                throw new IllegalArgumentException("El nombre de usuario ya está en uso");
+            }
+            existingUser.setUsername(userToUpdate.getUsername());
+        }
         existingUser.setName(userToUpdate.getName());
         existingUser.setLastname(userToUpdate.getLastname());
         existingUser.setEmail(userToUpdate.getEmail());
         existingUser.setSystemRole(userToUpdate.getSystemRole());
-        if (userToUpdate.getOrganizationRole().isOwner() &&
-                !existingUser.getOrganizationRole().isOwner()) {
-            userToUpdate.setOrganizationRole(existingUser.getOrganizationRole());
+        OrganizationRole incomingOrgRole = userToUpdate.getOrganizationRole();
+        if (incomingOrgRole != null) {
+            boolean existingIsOwner = existingUser.getOrganizationRole() != null
+                    && existingUser.getOrganizationRole().isOwner();
+            if (!incomingOrgRole.isOwner() || existingIsOwner) {
+                existingUser.setOrganizationRole(incomingOrgRole);
+            }
         }
         existingUser.setActive(userToUpdate.getActive());
         if (userToUpdate.isPasswordValid()) {
             existingUser.setPassword(passwordEncoder.encode(userToUpdate.getPassword()));
         }
         User updatedUser = userRepository.save(existingUser);
+        securityUtils.refreshCurrentUserInSession(updatedUser.getId());
         logService.log(builder -> builder
-            .eventType("USER_UPDATED")
-            .description("Usuario actualizado: " + updatedUser.getUsername())
-            .user(updatedUser)
+                .eventType("USER_UPDATED")
+                .description("Usuario actualizado: " + updatedUser.getUsername())
+                .user(updatedUser)
+                .organization(updatedUser.getOrganization())
         );
         log.info("User updated successfully: {}", updatedUser.getUsername());
         return updatedUser;
     }
+
     @Override
     @Transactional
     public void deactivateUser(Long id) {
@@ -138,9 +155,27 @@ public class UserServiceImpl implements UserService {
                 .user(securityUtils.getCurrentUser().orElse(null))
                 .organization(securityUtils.getCurrentOrganization().orElse(null))
                 .description("Usuario desactivado: " + user.getUsername())
-                .details("ID: "+user.getId())
+                .details("ID: " + user.getId())
         );
         log.info("User deactivated successfully: {}", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void activateUser(Long id) {
+        log.debug("Activating user: {}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        user.setActive(true);
+        userRepository.save(user);
+        logService.log(builder -> builder
+                .eventType("USER_ACTIVATED")
+                .user(securityUtils.getCurrentUser().orElse(null))
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
+                .description("Usuario activado: " + user.getUsername())
+                .details("ID: " + user.getId())
+        );
+        log.info("User activated successfully: {}", user.getUsername());
     }
     @Override
     @Transactional(readOnly = true)
@@ -158,8 +193,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<User> getAvailableUsersExcluding(SystemRole systemRole, List<Long> excludedUserIds) {
+        long orgId = securityUtils.getCurrentOrganizationId().orElseThrow();
         if (excludedUserIds == null || excludedUserIds.isEmpty()) {
-            return userRepository.findBySystemRoleAndActiveTrue(systemRole);
+            return userRepository.findAllByActiveAndOrganization_Id(true, orgId);
         }
         return userRepository.findActiveBySystemRoleAndIdNotIn(systemRole, excludedUserIds);
     }

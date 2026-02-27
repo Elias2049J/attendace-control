@@ -50,7 +50,7 @@ public class EnrollmentController {
     }
 
     @GetMapping("/enroll")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String showEnrollForm(@PathVariable Long activityId, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Showing enroll form for activity: {}", activityId);
         try {
@@ -75,7 +75,7 @@ public class EnrollmentController {
     }
 
     @PostMapping("/enroll-single")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String enrollSingleUser(@PathVariable Long activityId,
                                    @RequestParam Long userId,
                                    RedirectAttributes redirectAttributes) {
@@ -98,7 +98,7 @@ public class EnrollmentController {
     }
 
     @PostMapping("/enroll-multiple")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String enrollMultipleUsers(@PathVariable Long activityId,
                                       @RequestParam(required = false) List<Long> userIds,
                                       RedirectAttributes redirectAttributes) {
@@ -126,7 +126,7 @@ public class EnrollmentController {
     }
 
     @PostMapping("/{userId}/remove")
-    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN', 'ORG_MEMBER')")
+    @PreAuthorize("hasAnyRole('ORG_OWNER', 'ORG_ADMIN')")
     public String removeParticipant(@PathVariable Long activityId,
                                    @PathVariable Long userId,
                                    RedirectAttributes redirectAttributes) {

@@ -44,6 +44,7 @@ public class LogServiceImpl implements LogService {
         }
         return auditLogRepository.save(auditLog);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<AuditLog> listAuditLogs() {
@@ -55,6 +56,7 @@ public class LogServiceImpl implements LogService {
                 .map(auditLogRepository::findByOrganization)
                 .orElse(List.of());
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<AuditLog> searchLogs(Long userId, String eventType, LocalDateTime startDate, LocalDateTime endDate) {
@@ -69,16 +71,22 @@ public class LogServiceImpl implements LogService {
                 .map(orgId -> auditLogRepository.searchLogsByOrganization(orgId, userId, eventType, startDate, endDate))
                 .orElse(List.of());
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<AuditLog> filterAuditLogs(Long userId, String eventType, LocalDateTime startDate, LocalDateTime endDate) {
         return searchLogs(userId, eventType, startDate, endDate);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<AuditLog> getLogsByUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         return auditLogRepository.findByUser(user);
+    }
+    @Override
+    public List<AuditLog> getReportLogs() {
+        return List.of();
     }
 }

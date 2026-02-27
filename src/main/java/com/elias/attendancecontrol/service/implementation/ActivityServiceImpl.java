@@ -22,7 +22,6 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -38,8 +37,32 @@ public class ActivityServiceImpl implements ActivityService {
     private final RecurrenceService recurrenceService;
     private final LogService logService;
     private final SecurityUtils securityUtils;
+
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
+    public Activity createActivityWithRecurrence(Activity activity, RecurrenceRule recurrenceRule) {
+        log.debug("Creating activity with recurrence: {}", activity.getName());
+        Activity savedActivity = createActivity(activity);
+        recurrenceService.configureRecurrence(savedActivity.getId(), recurrenceRule);
+        log.info("Activity with recurrence created successfully: {}", savedActivity.getId());
+        return savedActivity;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Activity updateActivityWithRecurrence(Long id, Activity activity, RecurrenceRule recurrenceRule) {
+        log.debug("Updating activity with recurrence: {}", id);
+        Activity updated = updateActivity(id, activity);
+        if (updated.getRecurrenceRule() != null) {
+            recurrenceService.updateRecurrence(updated.getRecurrenceRule().getId(), recurrenceRule);
+        } else {
+            recurrenceService.configureRecurrence(id, recurrenceRule);
+        }
+        log.info("Activity with recurrence updated successfully: {}", id);
+        return updated;
+    }
+
+    @Override
     public Activity createActivity(Activity activity) {
         log.debug("Creating new activity: {}", activity.getName());
 
@@ -73,7 +96,6 @@ public class ActivityServiceImpl implements ActivityService {
         return savedActivity;
     }
     @Override
-    @Transactional
     public Activity updateActivity(Long id, Activity activity) {
         log.debug("Updating activity: {}", id);
         Activity existingActivity = activityRepository.findById(id)
@@ -88,6 +110,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .eventType("ACTIVITY_UPDATED")
                     .description("Actividad actualizada: " + updatedActivity.getName())
                     .user(currentUser)
+                    .organization(currentUser.getOrganization())
                     .details("ID: " + id)
             )
         );
@@ -118,6 +141,7 @@ public class ActivityServiceImpl implements ActivityService {
                         .eventType("ACTIVITY_ACTIVATED")
                         .description("Actividad activada y sesiones generadas: " + activity.getName())
                         .user(currentUser)
+                        .organization(currentUser.getOrganization())
                         .details("ID: " + id + ", Estado: " + activity.getStatus().getDisplayName())
                 )
             );
@@ -164,6 +188,7 @@ public class ActivityServiceImpl implements ActivityService {
     public List<Activity> findByResponsible(Long userId) {
         return activityRepository.findByResponsibleId(userId)
                 .stream()
+                .filter(a -> !a.getStatus().isDraft())
                 .sorted(Comparator.comparing(
                         (Activity a) -> a.getRecurrenceRule().getStartDate())
                         .thenComparing(Activity::getId, Comparator.reverseOrder())
@@ -216,6 +241,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .eventType("ACTIVITY_COMPLETED")
                     .description("Actividad completada: " + activity.getName())
                     .user(currentUser)
+                    .organization(currentUser.getOrganization())
             )
         );
 
@@ -237,6 +263,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .eventType("ACTIVITY_CANCELLED")
                     .description("Actividad cancelada: " + activity.getName())
                     .user(currentUser)
+                    .organization(currentUser.getOrganization())
             )
         );
 
@@ -283,6 +310,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .eventType("ACTIVITY_STATUS_CHANGED")
                     .description("Estado de actividad cambiado: " + activity.getName())
                     .user(currentUser)
+                    .organization(currentUser.getOrganization())
                     .details("De " + oldStatus + " a " + newStatus)
             )
         );

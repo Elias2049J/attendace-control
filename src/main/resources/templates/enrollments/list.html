@@ -26,7 +26,7 @@
                     <small th:text="${activity.description}">Descripción</small>
                 </p>
             </div>
-            <div th:if="${isOrgOwnerOrAdmin}">
+            <div th:if="${isOrgOwnerOrAdmin == true}">
                 <a th:href="@{/activities/{id}/enrollments/enroll(id=${activity.id})}"
                    class="btn btn-primary">
                     <i class="bi bi-person-plus-fill me-1"></i>
@@ -56,7 +56,7 @@
                     </div>
                 </div>
             </div>
-            <div th:if="${isOrgOwnerOrAdmin}" class="col-md-4">
+            <div th:if="${isOrgOwnerOrAdmin == true}" class="col-md-4">
                 <div class="card border-info">
                     <div class="card-body">
                         <h5 class="card-title text-info">
@@ -95,7 +95,7 @@
                                 <th>Email</th>
                                 <th>Fecha Inscripción</th>
                                 <th>Estado</th>
-                                <th th:if="${isOrgOwnerOrAdmin}" >Acciones</th>
+                                <th th:if="${isOrgOwnerOrAdmin == true}" >Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -128,7 +128,7 @@
                                         <i class="bi bi-award me-1"></i><span th:text="${enrollment.status.displayName}">Completado</span>
                                     </span>
                                 </td>
-                                <td th:if="${isOrgOwnerOrAdmin}">
+                                <td th:if="${isOrgOwnerOrAdmin == true}">
                                     <form th:if="${enrollment.status.isEnrolled()}"
                                           th:action="@{/activities/{activityId}/enrollments/{userId}/remove(activityId=${activity.id}, userId=${enrollment.user.id})}"
                                           method="post"

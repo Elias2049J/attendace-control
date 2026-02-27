@@ -56,7 +56,7 @@
                         </h3>
                         <div class="progress mt-2" style="height: 5px;">
                             <div class="progress-bar bg-success" role="progressbar"
-                                 th:style="'width: ' + ${(userCount * 100.0 / organization.maxUsers)} + '%'"
+                                 th:style="${organization.maxUsers > 0} ? ('width: ' + ${(userCount * 100.0 / organization.maxUsers)} + '%') : 'width: 0%'"
                                  th:attr="aria-valuenow=${userCount}, aria-valuemax=${organization.maxUsers}">
                             </div>
                         </div>
@@ -74,7 +74,7 @@
                         </h3>
                         <div class="progress mt-2" style="height: 5px;">
                             <div class="progress-bar bg-success" role="progressbar"
-                                 th:style="'width: ' + ${(activityCount * 100.0 / organization.maxActivities)} + '%'"
+                                 th:style="${organization.maxActivities > 0} ? ('width: ' + ${(activityCount * 100.0 / organization.maxActivities)} + '%') : 'width: 0%'"
                                  th:attr="aria-valuenow=${activityCount}, aria-valuemax=${organization.maxActivities}">
                             </div>
                         </div>
@@ -87,7 +87,7 @@
                         <i class="bi bi-calendar-check fs-1 text-mirae-dark mb-3"></i>
                         <h6 class="text-muted mb-2">Creada el</h6>
                         <h5 class="mb-0" th:text="${#temporals.format(organization.createdDate, 'dd/MM/yyyy')}">01/01/2026</h5>
-                        <small class="text-muted" th:text="${#temporals.format(organization.createdDate, 'HH:mm')}">10:00</small>
+                        <small class="text-muted" th:text="${#temporals.format(organization.createdDate, 'hh:mm a')}">10:00 AM</small>
                     </div>
                 </div>
             </div>
@@ -174,13 +174,13 @@
                                         <td th:text="${organization.maxUsers}">50</td>
                                         <td th:text="${organization.maxUsers - userCount}">50</td>
                                         <td>
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar"
-                                                     th:classappend="${(userCount * 100.0 / organization.maxUsers) > 80} ? 'bg-danger' : 'bg-success'"
-                                                     th:style="'width: ' + ${(userCount * 100.0 / organization.maxUsers)} + '%'"
-                                                     th:text="${#numbers.formatDecimal((userCount * 100.0 / organization.maxUsers), 1, 1)} + '%'">
-                                                </div>
-                                            </div>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar"
+                                                                     th:classappend="${organization.maxUsers > 0 and (userCount * 100.0 / organization.maxUsers) > 80} ? 'bg-danger' : 'bg-success'"
+                                                                     th:style="${organization.maxUsers > 0} ? ('width: ' + ${(userCount * 100.0 / organization.maxUsers)} + '%') : 'width: 0%'"
+                                                                     th:text="${organization.maxUsers > 0} ? ${#numbers.formatDecimal((userCount * 100.0 / organization.maxUsers), 1, 1)} + '%' : '0%'">
+                                                                </div>
+                                                            </div>
                                         </td>
                                     </tr>
                                     <tr>
@@ -189,20 +189,20 @@
                                         <td th:text="${organization.maxActivities}">10</td>
                                         <td th:text="${organization.maxActivities - activityCount}">10</td>
                                         <td>
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar"
-                                                     th:classappend="${(activityCount * 100.0 / organization.maxActivities) > 80} ? 'bg-danger' : 'bg-success'"
-                                                     th:style="'width: ' + ${(activityCount * 100.0 / organization.maxActivities)} + '%'"
-                                                     th:text="${#numbers.formatDecimal((activityCount * 100.0 / organization.maxActivities), 1, 1)} + '%'">
-                                                </div>
-                                            </div>
+                                                            <div class="progress" style="height: 20px;">
+                                                                <div class="progress-bar"
+                                                                     th:classappend="${organization.maxActivities > 0 and (activityCount * 100.0 / organization.maxActivities) > 80} ? 'bg-danger' : 'bg-success'"
+                                                                     th:style="${organization.maxActivities > 0} ? ('width: ' + ${(activityCount * 100.0 / organization.maxActivities)} + '%') : 'width: 0%'"
+                                                                     th:text="${organization.maxActivities > 0} ? ${#numbers.formatDecimal((activityCount * 100.0 / organization.maxActivities), 1, 1)} + '%' : '0%'">
+                                                                </div>
+                                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                         <div class="alert alert-warning mt-3"
-                             th:if="${(userCount * 100.0 / organization.maxUsers) > 80 or (activityCount * 100.0 / organization.maxActivities) > 80}">
+                             th:if="${(organization.maxUsers > 0 and (userCount * 100.0 / organization.maxUsers) > 80) or (organization.maxActivities > 0 and (activityCount * 100.0 / organization.maxActivities) > 80)}">
                             <i class="bi bi-exclamation-triangle"></i>
                             <strong>¡Atención!</strong> Estás cerca de alcanzar el límite de tu plan.
                             Considera actualizar a un plan superior.

@@ -14,8 +14,14 @@
                 <hr>
             </div>
         </div>
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
         <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}"></span>
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${error}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <div class="row justify-content-center">
@@ -25,6 +31,8 @@
                         <form th:action="${user.id != null ? '/users/' + user.id : '/users'}"
                               method="post"
                               th:object="${user}">
+                            <!-- Preservar el id en modo edición para que th:action funcione al devolver con errores -->
+                            <input th:if="${user.id != null}" type="hidden" th:field="*{id}">
                             <div class="mb-3">
                                 <label for="username" class="form-label">
                                     <i class="bi bi-person"></i> Nombre de Usuario *
@@ -63,14 +71,12 @@
                                 <label for="password" class="form-label">
                                     <i class="bi bi-key"></i> Contraseña *
                                 </label>
-                                <input type="password" class="form-control" id="password" th:field="*{password}"
+                                <input type="password" class="form-control" id="password" name="password"
                                        placeholder="Ingrese contraseña" required>
-                                <div th:if="${#fields.hasErrors('password')}" class="text-danger small">
-                                    <span th:errors="*{password}"></span>
-                                </div>
                                 <small class="text-muted">Mínimo 8 caracteres</small>
                             </div>
                             <div th:if="${user.id != null}">
+                                <input type="hidden" name="systemRole" th:value="${user.systemRole}">
                                 <div class="form-check form-switch mb-3">
                                     <input class="form-check-input" type="checkbox" id="changePasswordSwitch">
                                     <label class="form-check-label" for="changePasswordSwitch">
@@ -78,17 +84,15 @@
                                     </label>
                                 </div>
                                 <div class="mb-3" id="passwordFieldContainer" style="display:none;">
-                                    <label for="password" class="form-label">
-                                        <i class="bi bi-key"></i> Contraseña *
+                                    <label for="passwordNew" class="form-label">
+                                        <i class="bi bi-key"></i> Nueva Contraseña
                                     </label>
-                                    <input type="password" class="form-control" id="password" th:field="*{password}"
+                                    <input type="password" class="form-control" id="passwordNew"
+                                           name="password"
                                            placeholder="Ingrese nueva contraseña">
-                                    <div th:if="${#fields.hasErrors('password')}" class="text-danger small">
-                                        <span th:errors="*{password}"></span>
-                                    </div>
                                     <small class="text-muted">Mínimo 8 caracteres</small>
                                 </div>
-                                <input type="hidden" id="defaultPassword" th:field="*{password}" th:value="'password'">
+                                <input type="hidden" id="defaultPassword" name="password" value="password">
                             </div>
                             <div th:if="${user.id == null}" class="mb-3">
                                 <label for="systemRole" class="form-label">
@@ -96,7 +100,7 @@
                                 </label>
                                 <select class="form-select" id="systemRole" th:field="*{systemRole}" required>
                                     <option value="">Seleccione un rol</option>
-                                    <option th:each="roleOption : ${T(com.elias.attendancecontrol.model.entity.SystemRole).values()}"
+                                    <option th:each="roleOption : ${systemRoles}"
                                             th:value="${roleOption}"
                                             th:text="${roleOption.displayName}"
                                             th:selected="${user.systemRole == roleOption}">Rol</option>
@@ -126,20 +130,25 @@
         document.addEventListener('DOMContentLoaded', function() {
             const switchInput = document.getElementById('changePasswordSwitch');
             const passwordContainer = document.getElementById('passwordFieldContainer');
-            const passwordInput = document.getElementById('password');
+            const passwordNew = document.getElementById('passwordNew');
             const defaultPasswordInput = document.getElementById('defaultPassword');
+
             if (switchInput) {
                 switchInput.addEventListener('change', function() {
                     if (this.checked) {
                         passwordContainer.style.display = 'block';
-                        passwordInput.value = '';
+                        passwordNew.removeAttribute('disabled');
+                        passwordNew.value = '';
+                        defaultPasswordInput.disabled = true;
                     } else {
                         passwordContainer.style.display = 'none';
-                        passwordInput.value = 'password';
+                        passwordNew.disabled = true;
+                        passwordNew.value = '';
+                        defaultPasswordInput.disabled = false;
                     }
                 });
 
-                passwordInput.value = 'password';
+                passwordNew.disabled = true;
             }
         });
     </script>

@@ -81,6 +81,7 @@ public class ActivityIncidentServiceImpl implements ActivityIncidentService {
         logService.log(builder -> builder
                 .eventType("OCCURRENCE_RESCHEDULED")
                 .description("Ocurrencia reprogramada")
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
                 .session(originalSession)
                 .details("De: " + originalDate + " a: " + newDate + " | Razón: " + reason)
         );
@@ -119,6 +120,8 @@ public class ActivityIncidentServiceImpl implements ActivityIncidentService {
         logService.log(builder -> builder
                 .eventType("OCCURRENCE_CANCELLED")
                 .description("Ocurrencia cancelada")
+                .user(securityUtils.getCurrentUser().orElse(null))
+                .organization(securityUtils.getCurrentOrganization().orElse(null))
                 .session(session)
                 .details("Fecha: " + date + " | Razón: " + reason)
         );

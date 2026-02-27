@@ -17,8 +17,6 @@ public class Activity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotBlank(message = "El nombre de la actividad es obligatorio")
-    @Size(min = 3, max = 200, message = "El nombre de la actividad debe tener entre 3 y 200 caracteres")
     @Column(name = "name", nullable = false, length = 200)
     private String name;
     @Size(max = 5000, message = "La descripción no puede exceder 5000 caracteres")

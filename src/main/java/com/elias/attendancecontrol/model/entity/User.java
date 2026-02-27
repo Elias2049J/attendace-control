@@ -23,8 +23,6 @@ public class User {
     @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "El nombre de usuario solo puede contener letras, números, puntos, guiones y guiones bajos")
     @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
-    @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
     @Column(name = "password", nullable = false)
     private String password;
     @NotBlank(message = "El nombre es obligatorio")
@@ -43,7 +41,6 @@ public class User {
     @NotNull(message = "El estado activo es obligatorio")
     @Column(name = "active", nullable = false)
     private Boolean active = true;
-    @NotNull(message = "El rol es obligatorio")
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private SystemRole systemRole;
@@ -52,7 +49,7 @@ public class User {
     private Organization organization;
     @Enumerated(EnumType.STRING)
     @Column(name = "organization_role", length = 20)
-    private OrganizationRole organizationRole = OrganizationRole.MEMBER;
+    private OrganizationRole organizationRole;
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -83,6 +80,6 @@ public class User {
     }
 
     public boolean hasDefaultPassword() {
-        return (password.equalsIgnoreCase("password"));
+        return password != null && password.equalsIgnoreCase("password");
     }
 }
