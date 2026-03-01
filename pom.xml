@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.elias</groupId>
-    <artifactId>attendance-control</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>attendace-control</name>
-    <description>attendace-control</description>
+    <artifactId>mirae</artifactId>
+    <version>0.1.0</version>
+    <name>attendance-control-app</name>
+    <description>General attendance control app for any organization</description>
     <url/>
     <licenses>
         <license/>
