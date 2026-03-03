@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +19,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final AttendanceRepository attendanceRepository;
     private final LogService logService;
+    private final Clock clock;
     private final SecurityUtils securityUtils;
     private final ActivityRepository activityRepository;
     private final UserService userService;
@@ -42,7 +44,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Enrollment enrollment = new Enrollment();
         enrollment.setActivity(activity);
         enrollment.setUser(user);
-        enrollment.setEnrollmentDate(LocalDateTime.now());
+        enrollment.setEnrollmentDate(LocalDateTime.now(clock));
         enrollment.setStatus(EnrollmentStatus.ENROLLED);
         enrollment.setEnrolledByUser(securityUtils.getCurrentUser().orElse(null));
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
@@ -85,7 +87,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 Enrollment enrollment = new Enrollment();
                 enrollment.setActivity(activity);
                 enrollment.setUser(user);
-                enrollment.setEnrollmentDate(LocalDateTime.now());
+                enrollment.setEnrollmentDate(LocalDateTime.now(clock));
                 enrollment.setStatus(EnrollmentStatus.ENROLLED);
                 enrollment.setEnrolledByUser(enrolledBy);
                 enrollmentRepository.save(enrollment);

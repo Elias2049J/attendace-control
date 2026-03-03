@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 @Slf4j
@@ -21,6 +22,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final SessionTokenRepository sessionTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final LogService logService;
+    private final Clock clock;
     @Value("${session-token.duration-hours}")
     private int sessionTokenDurationHours;
 
@@ -46,7 +48,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public String createSession(User user, String ipAddress) {
         log.debug("Creating session for user: {}", user.getUsername());
         String token = UUID.randomUUID().toString();
-        LocalDateTime expirationTime = LocalDateTime.now().plusHours(sessionTokenDurationHours);
+        LocalDateTime expirationTime = LocalDateTime.now(clock).plusHours(sessionTokenDurationHours);
         SessionToken sessionToken = new SessionToken();
         sessionToken.setToken(token);
         sessionToken.setUser(user);

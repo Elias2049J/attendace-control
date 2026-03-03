@@ -3,7 +3,6 @@ package com.elias.attendancecontrol.service.implementation;
 import com.elias.attendancecontrol.config.SecurityUtils;
 import com.elias.attendancecontrol.model.entity.*;
 import com.elias.attendancecontrol.persistence.repository.*;
-import com.elias.attendancecontrol.service.ActivityService;
 import com.elias.attendancecontrol.service.LogService;
 import com.elias.attendancecontrol.service.SessionService;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,6 +28,7 @@ public class SessionServiceImpl implements SessionService {
     private final AttendanceRepository attendanceRepository;
     private final LogService logService;
     private final SecurityUtils securityUtils;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -39,19 +40,24 @@ public class SessionServiceImpl implements SessionService {
             throw new IllegalStateException(
                 "Solo se pueden activar sesiones en estado PLANNED. Estado actual: " + session.getStatus().getDisplayName());
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         if (session.getSessionDate().isAfter(today)) {
             throw new IllegalStateException(
                 "No se puede activar una sesión con fecha futura");
         }
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime allowedActivationStart = LocalDateTime.of(
-                session.getSessionDate(), session.getStartTime())
-                .minusMinutes(session.getToleranceMinutes());
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime sessionStart = LocalDateTime.of(session.getSessionDate(), session.getStartTime());
+        LocalDateTime allowedActivationStart = sessionStart.minusMinutes(session.getToleranceMinutes());
+        LocalDateTime allowedActivationEnd   = sessionStart.plusMinutes((long) session.getToleranceMinutes() * 2);
         if (now.isBefore(allowedActivationStart)) {
             throw new IllegalStateException(
                 "No se puede activar la sesión antes de los " + session.getToleranceMinutes() +
                 " minutos previos al inicio (" + session.getStartTime() + ")");
+        }
+        if (now.isAfter(allowedActivationEnd)) {
+            throw new IllegalStateException(
+                "La ventana de activación ya cerró. La sesión debió activarse antes de las " +
+                allowedActivationEnd.toLocalTime() + " ");
         }
         session.setStatus(SessionStatus.ACTIVE);
         Session savedSession = sessionRepository.save(session);
@@ -137,11 +143,11 @@ public class SessionServiceImpl implements SessionService {
         try {
             Session session = getSessionById(sessionId);
             if (!session.getStatus().isPlanned()) return false;
-            java.time.LocalDateTime now = java.time.LocalDateTime.now();
-            java.time.LocalDateTime allowedStart = java.time.LocalDateTime.of(
-                    session.getSessionDate(), session.getStartTime())
-                    .minusMinutes(session.getToleranceMinutes());
-            return !now.isBefore(allowedStart);
+            LocalDateTime now = LocalDateTime.now(clock);
+            LocalDateTime sessionStart = LocalDateTime.of(session.getSessionDate(), session.getStartTime());
+            LocalDateTime allowedStart = sessionStart.minusMinutes(session.getToleranceMinutes());
+            LocalDateTime allowedEnd   = sessionStart.plusMinutes((long) session.getToleranceMinutes() * 2);
+            return !now.isBefore(allowedStart) && !now.isAfter(allowedEnd);
         } catch (IllegalArgumentException e) {
             return false;
         }

@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
@@ -23,12 +24,13 @@ public class LogServiceImpl implements LogService {
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final SecurityUtils securityUtils;
+    private final Clock clock;
 
     @Override
     @Transactional
     public AuditLog log(Consumer<AuditLog.AuditLogBuilder> builderConsumer) {
         AuditLog.AuditLogBuilder builder = AuditLog.builder()
-                .eventDate(LocalDateTime.now());
+                .eventDate(LocalDateTime.now(clock));
         builderConsumer.accept(builder);
         AuditLog auditLog = builder.build();
         if (auditLog.getEventType() == null || auditLog.getEventType().trim().isEmpty()) {

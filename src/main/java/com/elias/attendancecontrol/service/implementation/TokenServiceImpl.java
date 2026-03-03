@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +29,7 @@ public class TokenServiceImpl implements TokenService {
     private final SessionRepository sessionRepository;
     private final AttendanceRepository attendanceRepository;
     private final QRGeneratorService qrGeneratorService;
+    private final Clock clock;
     @Value("${qr.duration-minutes}")
     private int qrDurationMinutes;
 
@@ -44,7 +47,7 @@ public class TokenServiceImpl implements TokenService {
             return false;
         }
         SessionToken sessionToken = sessionTokenOpt.get();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         return sessionToken.getActive()
             && now.isBefore(sessionToken.getExpirationTime())
             && sessionToken.getUser().getActive();
@@ -55,7 +58,7 @@ public class TokenServiceImpl implements TokenService {
             throw new IllegalStateException("Solo se puede generar QR para sesiones activas");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         int validityMinutes = qrDurationMinutes;
 
         Optional<QRToken> existingQrOpt = qrTokenRepository.findBySession(session);
@@ -103,7 +106,7 @@ public class TokenServiceImpl implements TokenService {
             return false;
         }
         QRToken qrToken = qrTokenOpt.get();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         boolean isValid = qrToken.getActive()
             && now.isAfter(qrToken.getValidFrom())
             && now.isBefore(qrToken.getValidUntil())

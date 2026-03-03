@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -19,6 +20,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final EnrollmentService enrollmentService;
     private final UserService userService;
     private final SessionService sessionService;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -53,7 +55,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         Attendance attendance = new Attendance();
         attendance.setUser(user);
         attendance.setSession(session);
-        attendance.setRegistrationTime(LocalDateTime.now());
+        attendance.setRegistrationTime(LocalDateTime.now(clock));
         attendance.setStatus(determineStatus(session));
         attendance.setRegistrationType("QR");
         Attendance savedAttendance = attendanceRepository.save(attendance);
@@ -116,7 +118,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
                     if (oldStatus != newStatus) {
                         attendance.setStatus(newStatus);
-                        attendance.setRegistrationTime(LocalDateTime.now());
+                        attendance.setRegistrationTime(LocalDateTime.now(clock));
 
                         Attendance savedAttendance = attendanceRepository.save(attendance);
                         attendances.add(savedAttendance);
@@ -143,7 +145,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     attendance = new Attendance();
                     attendance.setUser(user);
                     attendance.setSession(session);
-                    attendance.setRegistrationTime(LocalDateTime.now());
+                    attendance.setRegistrationTime(LocalDateTime.now(clock));
                     attendance.setStatus(newStatus);
                     attendance.setRegistrationType("MANUAL");
 
@@ -217,7 +219,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     public boolean validateTime(Long sessionId) {
         Session session = sessionService.getSessionById(sessionId);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime sessionStart = LocalDateTime.of(session.getSessionDate(), session.getStartTime());
         int tolerance = session.getToleranceMinutes();
         LocalDateTime allowedStart = sessionStart.minusMinutes(tolerance);
@@ -274,7 +276,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     private AttendanceStatus determineStatus(Session session) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime sessionStart = LocalDateTime.of(session.getSessionDate(), session.getStartTime());
         int tolerance = session.getToleranceMinutes();
         if (now.isAfter(sessionStart.plusMinutes(tolerance))) {
